@@ -66,8 +66,21 @@
         <!-- 2. Dev Title & Vibe Score Ring Card -->
         <div id="title-score-card" class="vibe-card title-score-card">
           <div class="score-header">
-            <div id="score-ring-wrapper" class="score-ring-wrapper">
-              <span id="score-number" class="score-number gradient-text">0</span>
+            <div class="score-ring-container">
+              <svg class="score-ring-svg" viewBox="0 0 100 100">
+                <defs>
+                  <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#A78BFA" />
+                    <stop offset="50%" stop-color="#F472B6" />
+                    <stop offset="100%" stop-color="#FB923C" />
+                  </linearGradient>
+                </defs>
+                <circle class="score-ring-bg" cx="50" cy="50" r="42" />
+                <circle id="score-ring-circle" class="score-ring-progress" cx="50" cy="50" r="42" />
+              </svg>
+              <div class="score-ring-inner">
+                <span id="score-number" class="score-number gradient-text">0</span>
+              </div>
             </div>
             <div class="score-meta">
               <span class="vibe-tag">vibe score</span>
@@ -110,14 +123,26 @@
           </div>
         </div>
 
-        <!-- 5. Language Bar (Phase 5) -->
-        <div id="language-bar-container" class="language-bar-container"></div>
+        <!-- 5. Language Bar (top 4 languages, colored) -->
+        <div id="language-card" class="vibe-card language-card">
+          <h3 class="card-subtitle">top languages ⚡</h3>
+          <div id="language-bar" class="language-bar"></div>
+          <div id="language-legend" class="language-legend"></div>
+        </div>
 
-        <!-- 6. Contribution Heatmap (Phase 5) -->
-        <div id="heatmap-container" class="heatmap-container"></div>
+        <!-- 6. Contribution Heatmap (last 12 months, mini size) -->
+        <div id="heatmap-card" class="vibe-card heatmap-card">
+          <h3 class="card-subtitle">activity heatmap (12 mos) 📅</h3>
+          <div class="heatmap-scroll-wrapper">
+            <div id="heatmap-chart" class="heatmap-chart"></div>
+          </div>
+        </div>
 
-        <!-- 7. Top 2 Repos (Phase 5) -->
-        <div id="top-repos-container" class="top-repos-container"></div>
+        <!-- 7. Top 2 Repos -->
+        <div id="top-repos-card" class="vibe-card top-repos-card">
+          <h3 class="card-subtitle">top repositories 📦</h3>
+          <div id="repos-list" class="repos-list"></div>
+        </div>
 
         <!-- 8. Badges: small pills (max 4) -->
         <div id="badges-container" class="badges-container"></div>

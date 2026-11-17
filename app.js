@@ -1,4 +1,4 @@
-// app.js - Main Application Logic
+// app.js - Main Application Logic & Visual Extras
 import { analyzeProfile } from './reactions.js';
 
 // Loading screen lines that rotate every 1.5 seconds
@@ -11,6 +11,36 @@ const LOADING_LINES = [
 
 let loadingInterval = null;
 const THEME_STORAGE_KEY = 'vibe-check-theme';
+
+// Standard GitHub language colors
+const LANGUAGE_COLORS = {
+  JavaScript: '#f1e05a',
+  TypeScript: '#3178c6',
+  Python: '#3572A5',
+  HTML: '#e34c26',
+  CSS: '#563d7c',
+  Rust: '#dea584',
+  Go: '#00ADD8',
+  'C++': '#f34b7d',
+  C: '#555555',
+  'C#': '#178600',
+  Java: '#b07219',
+  PHP: '#4F5D95',
+  Ruby: '#701516',
+  Swift: '#F05138',
+  Kotlin: '#A97BFF',
+  Dart: '#00B4AB',
+  Shell: '#89e051',
+  Vue: '#41b883',
+  Svelte: '#ff3e00'
+};
+
+const FALLBACK_PALETTE = ['#A78BFA', '#F472B6', '#FB923C', '#38BDF8', '#4ADE80', '#FBBF24'];
+
+function getLanguageColor(name, index) {
+  if (LANGUAGE_COLORS[name]) return LANGUAGE_COLORS[name];
+  return FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];
+}
 
 // Helper: Safely get DOM element
 function getEl(id) {
@@ -87,6 +117,31 @@ export function formatNumber(num) {
   return n.toLocaleString();
 }
 
+// Count-up animation for numbers (under 0.8s)
+export function animateCountUp(element, target, duration = 600, isFormatted = false) {
+  if (!element) return;
+  const targetNum = Number(target) || 0;
+  if (targetNum <= 0) {
+    element.textContent = isFormatted ? formatNumber(0) : '0';
+    return;
+  }
+  const startTime = performance.now();
+  function update(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    // Smooth ease-out quad
+    const ease = 1 - (1 - progress) * (1 - progress);
+    const current = Math.round(targetNum * ease);
+    element.textContent = isFormatted ? formatNumber(current) : current;
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      element.textContent = isFormatted ? formatNumber(targetNum) : targetNum;
+    }
+  }
+  requestAnimationFrame(update);
+}
+
 // Loading Animation
 export function startLoading() {
   showScreen('loading');
@@ -116,7 +171,186 @@ export function stopLoading() {
   }
 }
 
-// Render Profile and Basic Stats
+// Confetti burst for high scores (>= 80)
+export function triggerConfetti() {
+  if (typeof window !== 'undefined' && typeof window.confetti === 'function') {
+    window.confetti({
+      particleCount: 80,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#A78BFA', '#F472B6', '#FB923C', '#E9D5FF', '#FDF2F8'],
+      ticks: 200,
+      disableForReducedMotion: true
+    });
+  }
+}
+
+// Render Smooth SVG Score Ring
+export function renderScoreRing(score) {
+  const circleEl = getEl('score-ring-circle');
+  const scoreNumEl = getEl('score-number');
+  const circumference = 263.89; // 2 * PI * 42
+
+  if (scoreNumEl) {
+    animateCountUp(scoreNumEl, score, 650, false);
+  }
+
+  if (circleEl) {
+    circleEl.style.strokeDashoffset = circumference;
+    const offset = circumference * (1 - Math.min(100, Math.max(0, score)) / 100);
+    requestAnimationFrame(() => {
+      circleEl.style.strokeDashoffset = offset;
+    });
+  }
+}
+
+// Render Top 4 Languages Bar & Legend
+export function renderLanguageBar(languages) {
+  const barEl = getEl('language-bar');
+  const legendEl = getEl('language-legend');
+  if (!barEl || !legendEl) return;
+
+  barEl.innerHTML = '';
+  legendEl.innerHTML = '';
+
+  if (!languages || languages.length === 0) {
+    legendEl.innerHTML = '<span class="legend-item" style="color:var(--muted-text);">no public languages found</span>';
+    return;
+  }
+
+  languages.forEach((lang, idx) => {
+    const color = getLanguageColor(lang.name, idx);
+
+    // Bar segment
+    const segment = document.createElement('div');
+    segment.className = 'lang-segment';
+    segment.style.width = `${lang.percent}%`;
+    segment.style.backgroundColor = color;
+    segment.title = `${lang.name}: ${lang.percent}%`;
+    barEl.appendChild(segment);
+
+    // Legend item
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `
+      <span class="lang-dot" style="background-color:${color};"></span>
+      <span class="lang-name">${lang.name}</span>
+      <span class="lang-pct">${lang.percent}%</span>
+    `;
+    legendEl.appendChild(item);
+  });
+}
+
+// Render Mini Contribution Heatmap (SVG)
+export function renderHeatmap(calendar) {
+  const chartEl = getEl('heatmap-chart');
+  if (!chartEl) return;
+
+  chartEl.innerHTML = '';
+
+  if (!calendar || calendar.length === 0) {
+    chartEl.innerHTML = '<p class="heatmap-empty-msg">contribution graph unlocks with your github token ✨</p>';
+    return;
+  }
+
+  // Build grid of weeks and days
+  const weeks = [];
+  let currentWeek = [];
+
+  calendar.forEach((day, index) => {
+    currentWeek.push(day);
+    if (currentWeek.length === 7 || index === calendar.length - 1) {
+      weeks.push(currentWeek);
+      currentWeek = [];
+    }
+  });
+
+  const cellSize = 8;
+  const cellGap = 3;
+  const colWidth = cellSize + cellGap;
+  const totalWidth = weeks.length * colWidth;
+  const totalHeight = 7 * colWidth;
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', `0 0 ${totalWidth} ${totalHeight}`);
+  svg.setAttribute('width', `${totalWidth}`);
+  svg.setAttribute('height', `${totalHeight}`);
+
+  weeks.forEach((week, wIdx) => {
+    week.forEach((day, dIdx) => {
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('x', `${wIdx * colWidth}`);
+      rect.setAttribute('y', `${dIdx * colWidth}`);
+      rect.setAttribute('width', `${cellSize}`);
+      rect.setAttribute('height', `${cellSize}`);
+      rect.setAttribute('rx', '2');
+
+      const count = day.count || 0;
+      let fill = 'var(--heatmap-empty)';
+      if (count >= 8) fill = 'rgba(251, 146, 60, 0.95)';
+      else if (count >= 4) fill = 'rgba(244, 114, 182, 0.75)';
+      else if (count >= 1) fill = 'rgba(167, 139, 250, 0.55)';
+
+      rect.setAttribute('fill', fill);
+
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      title.textContent = `${day.date}: ${count} contribution${count === 1 ? '' : 's'}`;
+      rect.appendChild(title);
+
+      svg.appendChild(rect);
+    });
+  });
+
+  chartEl.appendChild(svg);
+}
+
+// Render Top 2 Repos
+export function renderTopRepos(repos) {
+  const listEl = getEl('repos-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = '';
+
+  if (!repos || repos.length === 0) {
+    listEl.innerHTML = '<p class="heatmap-empty-msg">no public repos. mysterious. we respect it.</p>';
+    return;
+  }
+
+  repos.forEach((repo, idx) => {
+    const color = getLanguageColor(repo.language || 'Plain Text', idx);
+    const item = document.createElement('div');
+    item.className = 'repo-item';
+    item.innerHTML = `
+      <span class="repo-title" title="${repo.name}">${repo.name}</span>
+      <div class="repo-meta">
+        <span class="repo-stat">
+          <span class="lang-dot" style="background-color:${color};"></span>
+          ${repo.language || 'Code'}
+        </span>
+        <span class="repo-stat">
+          ⭐ ${formatNumber(repo.stars || 0)}
+        </span>
+      </div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+// Stagger Card Slide Up Animation
+export function animateCards() {
+  const container = getEl('result-container');
+  if (!container) return;
+
+  const cards = container.querySelectorAll('.vibe-card');
+  cards.forEach((card, index) => {
+    card.classList.remove('card-animate');
+    void card.offsetWidth; // Reflow
+    card.style.animationDelay = `${index * 0.07}s`;
+    card.classList.add('card-animate');
+  });
+}
+
+// Render Profile and Basic Stats with count-up numbers
 export function renderBasicResult(data) {
   const { profile, stats } = data;
 
@@ -148,7 +382,7 @@ export function renderBasicResult(data) {
     }
   }
 
-  // 4. Stats Row
+  // 4. Stats Row with Count-Up Animations
   const reposEl = getEl('stat-repos');
   const starsEl = getEl('stat-stars');
   const commitsEl = getEl('stat-commits');
@@ -156,32 +390,31 @@ export function renderBasicResult(data) {
   const followersEl = getEl('stat-followers');
   const streakEl = getEl('stat-streak');
 
-  if (reposEl) reposEl.textContent = formatNumber(profile.publicRepos || 0);
-  if (starsEl) starsEl.textContent = formatNumber(stats.stars || 0);
-  if (commitsEl) commitsEl.textContent = formatNumber(stats.commits || 0);
-  if (prsEl) prsEl.textContent = formatNumber(stats.prsMerged || 0);
-  if (followersEl) followersEl.textContent = formatNumber(profile.followers || 0);
-  if (streakEl) streakEl.textContent = formatNumber(stats.longestStreak || 0);
+  if (reposEl) animateCountUp(reposEl, profile.publicRepos || 0, 600, true);
+  if (starsEl) animateCountUp(starsEl, stats.stars || 0, 600, true);
+  if (commitsEl) animateCountUp(commitsEl, stats.commits || 0, 600, true);
+  if (prsEl) animateCountUp(prsEl, stats.prsMerged || 0, 600, true);
+  if (followersEl) animateCountUp(followersEl, profile.followers || 0, 600, true);
+  if (streakEl) animateCountUp(streakEl, stats.longestStreak || 0, 600, true);
 }
 
-// Render Full Result including Reaction Engine
+// Render Full Result (Visual Extras)
 export function renderFullResult(data) {
-  // 1. Render Basic Profile & Stats
+  // 1. Render Basic Profile & Animated Stats
   renderBasicResult(data);
 
   // Run Reaction Engine
   const analysis = analyzeProfile(data);
 
-  // 2. Dev Title & Vibe Score
-  const scoreNumEl = getEl('score-number');
+  // 2. Dev Title & Score Ring
   const scoreLabelEl = getEl('score-label');
   const devTitleEl = getEl('dev-title');
 
-  if (scoreNumEl) scoreNumEl.textContent = analysis.score;
   if (scoreLabelEl) scoreLabelEl.textContent = analysis.label;
   if (devTitleEl) devTitleEl.textContent = analysis.title;
+  renderScoreRing(analysis.score);
 
-  // 3. Reaction Lines (2-3 short lines)
+  // 3. Reaction Lines
   const reactionLinesEl = getEl('reaction-lines');
   if (reactionLinesEl) {
     reactionLinesEl.innerHTML = '';
@@ -192,6 +425,15 @@ export function renderFullResult(data) {
       reactionLinesEl.appendChild(p);
     });
   }
+
+  // 5. Language Bar
+  renderLanguageBar(data.languages);
+
+  // 6. Contribution Heatmap
+  renderHeatmap(data.calendar);
+
+  // 7. Top 2 Repos
+  renderTopRepos(data.topRepos);
 
   // 8. Badges (small pills, max 4)
   const badgesContainerEl = getEl('badges-container');
@@ -214,6 +456,16 @@ export function renderFullResult(data) {
   const verdictTextEl = getEl('verdict-text');
   if (verdictTextEl) {
     verdictTextEl.textContent = `"${analysis.verdict}"`;
+  }
+
+  // Staggered card animation
+  animateCards();
+
+  // 10. Confetti if score >= 80
+  if (analysis.score >= 80) {
+    setTimeout(() => {
+      triggerConfetti();
+    }, 450);
   }
 
   return analysis;
