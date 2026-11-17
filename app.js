@@ -1082,13 +1082,14 @@ export async function downloadShareCard() {
   }
 
   try {
-    // Reveal canvasNode offscreen at exact 1080x1350 geometry
+    // Reveal canvasNode at (0, 0) with exact 1080x1350 geometry
     canvasNode.style.display = 'flex';
     canvasNode.style.opacity = '1';
     canvasNode.style.visibility = 'visible';
-    canvasNode.style.position = 'absolute';
-    canvasNode.style.left = '-9999px';
+    canvasNode.style.position = 'fixed';
     canvasNode.style.top = '0';
+    canvasNode.style.left = '0';
+    canvasNode.style.zIndex = '-9999';
     canvasNode.style.width = '1080px';
     canvasNode.style.minWidth = '1080px';
     canvasNode.style.maxWidth = '1080px';
