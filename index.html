@@ -1,17 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GitHub Vibe Check</title>
+  <title>github vibe check</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- GitHub Vibe Check Main Container -->
-  <div id="app"></div>
+  <!-- Theme Toggle (top right corner) -->
+  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light theme" type="button">
+    <span id="theme-icon" class="theme-icon">🌙</span>
+  </button>
+
+  <div class="app-wrapper">
+    <!-- Screen 1: Landing -->
+    <section id="screen-landing" class="screen screen-landing">
+      <div class="landing-content">
+        <h1 class="landing-title gradient-text">github vibe check</h1>
+        <p class="landing-subtitle">drop your github id, get read.</p>
+
+        <form id="vibe-form" class="landing-form" autocomplete="off" novalidate>
+          <div class="input-wrapper">
+            <input
+              type="text"
+              id="username-input"
+              class="vibe-input"
+              placeholder="github username or profile url"
+              spellcheck="false"
+              autocorrect="off"
+              autocapitalize="none"
+              required
+            />
+          </div>
+          <button type="submit" id="submit-btn" class="btn btn-gradient">
+            check my vibe
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Screen 2: Loading (hidden for now) -->
+    <section id="screen-loading" class="screen screen-loading" hidden>
+      <div class="loading-content">
+        <div class="loading-blob"></div>
+        <p id="loading-line" class="loading-text">stalking your commits...</p>
+      </div>
+    </section>
+
+    <!-- Screen 3: Result (hidden for now) -->
+    <section id="screen-result" class="screen screen-result" hidden>
+      <div class="result-content"></div>
+    </section>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>

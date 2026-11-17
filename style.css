@@ -1,5 +1,320 @@
-/* GitHub Vibe Check Styles */
+/* GitHub Vibe Check - Design System & Styles */
+
 :root {
-  --font-heading: 'Space Grotesk', sans-serif;
-  --font-body: 'Inter', sans-serif;
+  /* Typography */
+  --font-heading: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Accent Gradient (Purple -> Pink -> Peach) */
+  --accent-gradient: linear-gradient(135deg, #A78BFA 0%, #F472B6 50%, #FB923C 100%);
+  --accent-purple: #A78BFA;
+  --accent-pink: #F472B6;
+  --accent-peach: #FB923C;
+
+  /* Dark Theme (Default) */
+  --bg-color: #0F0B1E;
+  --card-bg: rgba(26, 21, 48, 0.75);
+  --card-solid: #1A1530;
+  --text-color: #F5F3FF;
+  --muted-text: #A8A3C7;
+  --border-color: rgba(245, 243, 255, 0.08);
+  --input-bg: rgba(26, 21, 48, 0.85);
+  --input-border: rgba(245, 243, 255, 0.12);
+  --card-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--border-color);
+  --glow-shadow: 0 8px 30px rgba(167, 139, 250, 0.25);
+  --theme-btn-bg: rgba(26, 21, 48, 0.7);
+  --theme-btn-border: rgba(245, 243, 255, 0.1);
+}
+
+[data-theme="light"] {
+  /* Light Theme */
+  --bg-color: #FAF7FF;
+  --card-bg: rgba(255, 255, 255, 0.85);
+  --card-solid: #FFFFFF;
+  --text-color: #1E1B33;
+  --muted-text: #6B6690;
+  --border-color: rgba(30, 27, 51, 0.08);
+  --input-bg: rgba(255, 255, 255, 0.95);
+  --input-border: rgba(30, 27, 51, 0.12);
+  --card-shadow: 0 16px 40px -10px rgba(167, 139, 250, 0.15), 0 0 0 1px var(--border-color);
+  --glow-shadow: 0 8px 30px rgba(244, 114, 182, 0.25);
+  --theme-btn-bg: rgba(255, 255, 255, 0.8);
+  --theme-btn-border: rgba(30, 27, 51, 0.08);
+}
+
+/* Reset & Base Styles */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient background gradient glow */
+body::before {
+  content: '';
+  position: fixed;
+  top: -20vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  max-width: 120vw;
+  height: 600px;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, rgba(244, 114, 182, 0.08) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  width: 46px;
+  height: 46px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: var(--theme-btn-bg);
+  border: 1px solid var(--theme-btn-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  font-size: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.08);
+}
+
+.theme-toggle:active {
+  transform: scale(0.94);
+}
+
+/* Layout App Wrapper */
+.app-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 1;
+}
+
+/* Screen Transitions */
+.screen {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.screen[hidden] {
+  display: none !important;
+}
+
+/* Gradient Text Effect */
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
+/* ==========================================================================
+   Screen 1: Landing Screen
+   ========================================================================== */
+.screen-landing {
+  min-height: calc(100vh - 72px);
+  justify-content: center;
+  animation: fadeIn 0.6s ease-out;
+}
+
+.landing-content {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.landing-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2.4rem, 8vw, 3.8rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  margin-bottom: 12px;
+  text-transform: lowercase;
+}
+
+.landing-subtitle {
+  font-size: clamp(1rem, 3.5vw, 1.15rem);
+  color: var(--muted-text);
+  margin-bottom: 36px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Landing Form */
+.landing-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.input-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+.vibe-input {
+  width: 100%;
+  height: 56px;
+  min-height: 44px;
+  padding: 0 22px;
+  border-radius: 20px;
+  background: var(--input-bg);
+  border: 1.5px solid var(--input-border);
+  color: var(--text-color);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  outline: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.2s ease;
+  text-align: center;
+}
+
+.vibe-input::placeholder {
+  color: var(--muted-text);
+  opacity: 0.7;
+}
+
+.vibe-input:focus {
+  border-color: var(--accent-pink);
+  box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.2);
+}
+
+/* Buttons */
+.btn {
+  height: 56px;
+  min-height: 44px;
+  padding: 0 28px;
+  border-radius: 20px;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-gradient {
+  background: var(--accent-gradient);
+  color: #FFFFFF;
+  box-shadow: var(--glow-shadow);
+  width: 100%;
+}
+
+.btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 36px rgba(244, 114, 182, 0.35);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+/* Input Shake Animation for errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+.shake {
+  animation: shake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+  border-color: var(--accent-pink) !important;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Cards & Common Glassy Styling (for upcoming screens)
+   ========================================================================== */
+.vibe-card {
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  box-shadow: var(--card-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 24px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* ==========================================================================
+   Mobile-First Media Queries
+   ========================================================================== */
+@media (min-width: 480px) {
+  .landing-form {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 640px) {
+  .app-wrapper {
+    padding: 40px 24px 60px;
+  }
+  
+  .landing-content {
+    max-width: 520px;
+  }
 }
