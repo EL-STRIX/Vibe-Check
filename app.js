@@ -534,6 +534,17 @@ export async function handleCheckVibe(rawInput) {
 
   try {
     const res = await fetch(`/api/vibe?user=${encodeURIComponent(username)}`);
+    const contentType = res.headers.get('content-type') || '';
+
+    // If served via static Live Server (port 5500) where /api/vibe is missing
+    if (!contentType.includes('application/json')) {
+      stopLoading();
+      showScreen('landing');
+      showError("backend is not running! Run 'node server.js' in terminal and open http://localhost:3000", false);
+      triggerInputShake("run: node server.js");
+      return;
+    }
+
     const data = await res.json();
     stopLoading();
 
@@ -697,6 +708,13 @@ export async function handleCompareSubmit(user1Raw, user2Raw) {
       fetch(`/api/vibe?user=${encodeURIComponent(user1)}`),
       fetch(`/api/vibe?user=${encodeURIComponent(user2)}`)
     ]);
+
+    const contentType1 = res1.headers.get('content-type') || '';
+    const contentType2 = res2.headers.get('content-type') || '';
+    if (!contentType1.includes('application/json') || !contentType2.includes('application/json')) {
+      showCompareError("backend is not running! Run 'node server.js' and open http://localhost:3000");
+      return;
+    }
 
     const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
 
