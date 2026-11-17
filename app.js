@@ -935,46 +935,115 @@ export async function downloadShareCard() {
   const originalBtnText = shareBtn ? shareBtn.textContent : '';
   if (shareBtn) shareBtn.textContent = 'generating image... ⏳';
 
-  const { profile, stats } = currentVibeData;
+  const { profile = {}, stats = {} } = currentVibeData;
   const analysis = currentAnalysis;
 
-  // Populate canvas fields
+  // 1. Populate canvas text fields
   const shareName = getEl('share-name');
   const shareHandle = getEl('share-handle');
   const shareTitle = getEl('share-title');
   const shareScoreLabel = getEl('share-score-label');
   const shareScoreNumber = getEl('share-score-number');
+  const shareAuraBadge = getEl('share-aura-badge');
+  const shareArchetype = getEl('share-archetype');
   const shareStatStars = getEl('share-stat-stars');
   const shareStatCommits = getEl('share-stat-commits');
   const shareStatStreak = getEl('share-stat-streak');
   const shareVerdict = getEl('share-verdict');
+  const shareFooterUrl = getEl('share-footer-url');
   const shareAvatarImg = getEl('share-avatar-img');
   const shareAvatarFallback = getEl('share-avatar-fallback');
 
-  if (shareName) shareName.textContent = profile.name || profile.login;
-  if (shareHandle) shareHandle.textContent = `@${profile.login}`;
-  if (shareTitle) shareTitle.textContent = analysis.title;
-  if (shareScoreLabel) shareScoreLabel.textContent = analysis.label;
-  if (shareScoreNumber) shareScoreNumber.textContent = analysis.score;
+  const displayName = profile.name || profile.login || 'Anonymous Developer';
+  const displayHandle = profile.login || 'developer';
+  const initial = (displayHandle || displayName || 'V').trim().charAt(0).toUpperCase() || 'V';
+
+  if (shareName) {
+    shareName.textContent = displayName;
+    // Auto-shrink font size if name is long so it fits on one line (minimum 30px)
+    const len = displayName.length;
+    if (len > 24) {
+      shareName.style.fontSize = '30px';
+    } else if (len > 18) {
+      shareName.style.fontSize = '34px';
+    } else if (len > 13) {
+      shareName.style.fontSize = '38px';
+    } else {
+      shareName.style.fontSize = '44px';
+    }
+  }
+
+  if (shareHandle) {
+    shareHandle.textContent = `@${displayHandle}`;
+  }
+
+  if (shareTitle) {
+    const titleText = analysis.title || 'Code Alchemist';
+    shareTitle.textContent = titleText;
+    // Auto-shrink font size if title is long so it stays on one line centered (minimum 36px)
+    const tLen = titleText.length;
+    if (tLen > 24) {
+      shareTitle.style.fontSize = '38px';
+    } else if (tLen > 18) {
+      shareTitle.style.fontSize = '44px';
+    } else if (tLen > 13) {
+      shareTitle.style.fontSize = '50px';
+    } else {
+      shareTitle.style.fontSize = '58px';
+    }
+  }
+
+  if (shareScoreNumber) shareScoreNumber.textContent = analysis.score ?? 0;
+  if (shareScoreLabel) shareScoreLabel.textContent = analysis.label || 'vibing along';
+
+  if (shareAuraBadge) {
+    const auraFormatted = analysis.formattedAura || (analysis.aura >= 0 ? `+${(analysis.aura || 0).toLocaleString()}` : (analysis.aura || 0).toLocaleString());
+    shareAuraBadge.textContent = `${auraFormatted} aura`;
+    shareAuraBadge.classList.toggle('aura-negative', (analysis.aura || 0) < 0);
+  }
+
+  if (shareArchetype) {
+    shareArchetype.textContent = analysis.archetypes?.summaryLine || analysis.archetypes || '';
+  }
+
   if (shareStatStars) shareStatStars.textContent = formatNumber(stats.stars || 0);
   if (shareStatCommits) shareStatCommits.textContent = formatNumber(stats.commits || 0);
   if (shareStatStreak) shareStatStreak.textContent = `${stats.longestStreak || 0}d`;
-  if (shareVerdict) shareVerdict.textContent = `"${analysis.verdict}"`;
 
-  // Always prepare fallback initial circle first
+  if (shareVerdict) {
+    shareVerdict.textContent = `"${analysis.verdict || 'shipping code and vibing'}"`;
+  }
+
+  if (shareFooterUrl) {
+    const host = (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+      ? window.location.hostname
+      : 'github-vibe-check.vercel.app';
+    shareFooterUrl.textContent = `check yours at ${host} ✨`;
+  }
+
+  // 2. Set Rarity Tier on the card border
+  const rarity = (analysis.rarity || 'common').toLowerCase();
+  canvasNode.classList.remove('rarity-common', 'rarity-rare', 'rarity-epic', 'rarity-legendary');
+  canvasNode.classList.add(`rarity-${rarity}`);
+
+  // 3. Fallback initial circle first
   if (shareAvatarFallback) {
-    shareAvatarFallback.style.display = 'flex';
-    shareAvatarFallback.textContent = (profile.login || 'V')[0].toUpperCase();
-  }
-  if (shareAvatarImg) {
-    shareAvatarImg.style.display = 'none';
+    shareAvatarFallback.textContent = initial;
   }
 
-  // Attempt to load avatar as local data URL to prevent canvas cross-origin taint
+  // 4. Wait for fonts to load before exporting
+  if (typeof document !== 'undefined' && document.fonts && document.fonts.ready) {
+    try {
+      await document.fonts.ready;
+    } catch (_) {}
+  }
+
+  // 5. Attempt to load avatar as local data URL to prevent canvas cross-origin taint
+  let avatarLoaded = false;
   if (profile.avatar) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       const imgRes = await fetch(profile.avatar, { signal: controller.signal });
       clearTimeout(timeoutId);
 
@@ -988,18 +1057,29 @@ export async function downloadShareCard() {
         });
 
         if (dataUrl && shareAvatarImg) {
-          shareAvatarImg.src = dataUrl;
-          shareAvatarImg.style.display = 'block';
-          if (shareAvatarFallback) shareAvatarFallback.style.display = 'none';
+          await new Promise((resolve) => {
+            shareAvatarImg.onload = () => {
+              avatarLoaded = true;
+              resolve();
+            };
+            shareAvatarImg.onerror = () => resolve();
+            shareAvatarImg.src = dataUrl;
+          });
         }
       }
-    } catch (_) {
-      // Fallback initial circle is already visible
-    }
+    } catch (_) {}
+  }
+
+  if (avatarLoaded && shareAvatarImg) {
+    shareAvatarImg.style.display = 'block';
+    if (shareAvatarFallback) shareAvatarFallback.style.display = 'none';
+  } else {
+    if (shareAvatarImg) shareAvatarImg.style.display = 'none';
+    if (shareAvatarFallback) shareAvatarFallback.style.display = 'flex';
   }
 
   try {
-    // Reveal canvasNode at (0, 0)
+    // Reveal canvasNode offscreen at (0, 0)
     canvasNode.style.display = 'flex';
     canvasNode.style.opacity = '1';
     canvasNode.style.visibility = 'visible';
@@ -1008,7 +1088,7 @@ export async function downloadShareCard() {
     canvasNode.style.left = '0';
     canvasNode.style.zIndex = '-9999';
 
-    // Wait for DOM reflow
+    // Wait 2 animation frames for browser layout and font rendering
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
     if (typeof window !== 'undefined' && window.htmlToImage) {
@@ -1017,12 +1097,11 @@ export async function downloadShareCard() {
         height: 1350,
         canvasWidth: 1080,
         canvasHeight: 1350,
-        pixelRatio: 1,
-        backgroundColor: '#0F0B1E'
+        pixelRatio: 1
       });
 
       const link = document.createElement('a');
-      link.download = `github-vibe-${profile.login}.png`;
+      link.download = `github-vibe-${displayHandle}.png`;
       link.href = dataUrl;
       link.click();
       playPop();
@@ -1033,6 +1112,7 @@ export async function downloadShareCard() {
     canvasNode.style.display = 'none';
     if (shareBtn) shareBtn.textContent = originalBtnText;
   }
+}
 }
 
 // --- UPGRADED VIBE BATTLE ---

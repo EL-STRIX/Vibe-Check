@@ -289,53 +289,72 @@
     </footer>
   </div>
 
-  <!-- Hidden Offscreen Container for 1080x1350 Share Card Image Generation -->
-  <div id="share-card-canvas" class="share-card-canvas">
-    <div class="share-card-content">
-      <div class="share-card-header">
-        <span class="share-card-badge">github vibe check</span>
+  <!-- High-Resolution 1080x1350 Share Card Canvas (Exact Spec) -->
+  <div id="share-card-canvas" class="share-card-canvas rarity-common">
+    <!-- 1. Top label in gradient -->
+    <div class="share-card-header">
+      <span class="share-card-badge gradient-text">github vibe check</span>
+    </div>
+
+    <!-- 2. Avatar with gradient ring, then name, then @username on its own line -->
+    <div class="share-profile-section">
+      <div class="share-avatar-ring">
+        <img id="share-avatar-img" class="share-avatar-img" src="" alt="avatar" />
+        <div id="share-avatar-fallback" class="share-avatar-fallback"></div>
       </div>
-      <div class="share-card-profile">
-        <div id="share-avatar-box" class="share-avatar-box">
-          <img id="share-avatar-img" class="share-avatar-img" src="" alt="avatar" />
-          <div id="share-avatar-fallback" class="share-avatar-fallback"></div>
+      <div class="share-profile-names">
+        <h2 id="share-name" class="share-name"></h2>
+        <span id="share-handle" class="share-handle"></span>
+      </div>
+    </div>
+
+    <!-- 3. Dev title in huge gradient text, centered, on one line -->
+    <div class="share-title-box">
+      <h1 id="share-title" class="share-title gradient-text"></h1>
+    </div>
+
+    <!-- 4. Score as the biggest element with label and aura points -->
+    <div class="share-score-container">
+      <div class="share-score-row">
+        <div class="share-score-giant">
+          <span id="share-score-number" class="share-score-num gradient-text">0</span>
+          <span class="share-score-slash">/100</span>
         </div>
-        <div class="share-profile-text">
-          <h2 id="share-name" class="share-name"></h2>
-          <span id="share-handle" class="share-handle"></span>
-        </div>
+        <div id="share-aura-badge" class="share-aura-pill">+0 aura</div>
       </div>
-      <div class="share-card-title-box">
-        <h1 id="share-title" class="share-title"></h1>
+      <div id="share-score-label" class="share-score-label"></div>
+    </div>
+
+    <!-- 5. Archetype line, one small line -->
+    <div class="share-archetype-box">
+      <span id="share-archetype" class="share-archetype"></span>
+    </div>
+
+    <!-- 6. Three stats in a row (stars, commits, streak): labels >= 28px -->
+    <div class="share-stats-row">
+      <div class="share-stat-col">
+        <span id="share-stat-stars" class="share-stat-val">0</span>
+        <span class="share-stat-lbl">stars</span>
       </div>
-      <div class="share-score-box">
-        <span class="share-score-label" id="share-score-label"></span>
-        <div class="share-score-pill">
-          <span id="share-score-number" class="share-score-number"></span>
-          <span class="share-score-max">/100</span>
-        </div>
+      <div class="share-stat-col">
+        <span id="share-stat-commits" class="share-stat-val">0</span>
+        <span class="share-stat-lbl">commits</span>
       </div>
-      <div class="share-stats-row">
-        <div class="share-stat-item">
-          <span id="share-stat-stars" class="share-stat-val"></span>
-          <span class="share-stat-lbl">stars</span>
-        </div>
-        <div class="share-stat-item">
-          <span id="share-stat-commits" class="share-stat-val"></span>
-          <span class="share-stat-lbl">commits</span>
-        </div>
-        <div class="share-stat-item">
-          <span id="share-stat-streak" class="share-stat-val"></span>
-          <span class="share-stat-lbl">streak</span>
-        </div>
+      <div class="share-stat-col">
+        <span id="share-stat-streak" class="share-stat-val">0d</span>
+        <span class="share-stat-lbl">streak</span>
       </div>
-      <div class="share-verdict-box">
-        <p id="share-verdict" class="share-verdict"></p>
-      </div>
-      <div class="share-card-footer">
-        <span class="share-footer-text">check yours at github-vibe-check ✨</span>
-        <span class="share-footer-author">built by @EL-STRIX</span>
-      </div>
+    </div>
+
+    <!-- 7. Verdict in quotes: one short line, large text, max 2 lines -->
+    <div class="share-verdict-box">
+      <p id="share-verdict" class="share-verdict"></p>
+    </div>
+
+    <!-- 8. Footer: real site URL & small built by credit -->
+    <div class="share-card-footer">
+      <span id="share-footer-url" class="share-footer-url">check yours at github-vibe-check ✨</span>
+      <span class="share-footer-credit">built by @EL-STRIX</span>
     </div>
   </div>
 
