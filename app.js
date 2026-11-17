@@ -258,7 +258,9 @@ export function showScreen(screenName) {
   if (screenCompare) screenCompare.hidden = (screenName !== 'compare');
 
   if (typeof window !== 'undefined') {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
   }
 }
 

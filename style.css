@@ -139,7 +139,7 @@ body::before {
   padding: 24px 20px 48px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   z-index: 1;
 }
