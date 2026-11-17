@@ -59,17 +59,20 @@ Aura is calculated as `(score - 50) x 100 + min(stars, 3000) + min(followers, 30
 No framework, no build step, no database.
  
 ## Project Structure
- 
-```
+
+```text
 vibe-check/
-  index.html      all screens in one page
-  style.css       design, themes, animations
-  app.js          screens, fetching, rendering, share card, compare mode
-  reactions.js    score, titles, badges, rarity, aura, reaction lines
-  api/
-    vibe.js       serverless function that holds the token
-  .gitignore
-  README.md
+├── api/
+│   └── vibe.js          # Serverless API: fetches & aggregates GitHub REST & GraphQL data
+├── Docs/                # Project specifications and logic documentation
+├── index.html           # Single-page UI containing all screens and canvas exporter
+├── style.css            # Design tokens, themes (dark/light), animations & sleek scrollbars
+├── app.js               # Client controller: navigation, state, audio, and share card export
+├── reactions.js         # Core game engine: scoring curves, titles, archetypes & roast generator
+├── server.js            # Zero-dependency local development HTTP server
+├── .env.local           # Environment variables (GitHub Personal Access Token)
+├── .gitignore           # Git ignore patterns
+└── README.md            # Project overview and local setup guide
 ```
  
 ## Setup
