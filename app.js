@@ -1,5 +1,5 @@
 // app.js - Main Application Logic, Visual Extras, Edge Cases & Game Features
-import { analyzeProfile, evaluateGuess, evaluateBattle } from './reactions.js';
+import { analyzeProfile, evaluateBattle } from './reactions.js';
 
 // Loading screen lines that rotate every 1.5 seconds
 const LOADING_LINES = [
@@ -14,15 +14,12 @@ let lastAttemptedUser = '';
 let currentVibeData = null;
 let currentAnalysis = null;
 const THEME_STORAGE_KEY = 'vibe-check-theme';
-const ROAST_STORAGE_KEY = 'vibe-roast-level';
 const SECRETS_STORAGE_KEY = 'vibe-secrets-found';
 const SOUND_STORAGE_KEY = 'vibe-sound-muted';
 const TOTAL_SECRETS = 5;
 
 let audioCtx = null;
 let soundMuted = false;
-let currentRoastLevel = 'Medium';
-let userLockedGuess = null;
 let typingTimeoutId = null;
 let currentTypingState = { isTyping: false, fullText: [] };
 
@@ -61,7 +58,7 @@ function getEl(id) {
   return typeof document !== 'undefined' ? document.getElementById(id) : null;
 }
 
-// --- 1. AUDIO & HAPTICS (Section 6) ---
+// --- 1. AUDIO & HAPTICS ---
 export function initAudio() {
   if (typeof localStorage === 'undefined') return;
   soundMuted = localStorage.getItem(SOUND_STORAGE_KEY) === 'true';
@@ -211,7 +208,7 @@ export function toggleTheme() {
   playPop();
 }
 
-// --- 3. SECRETS TRACKER (Section 6) ---
+// --- 3. SECRETS TRACKER ---
 export function getDiscoveredSecrets() {
   if (typeof localStorage === 'undefined') return [];
   try {
@@ -356,29 +353,9 @@ export function animateCountUp(element, target, duration = 600, isFormatted = fa
   requestAnimationFrame(update);
 }
 
-// --- 5. GUESS THE SCORE MINIGAME (Section 6) ---
-export function resetGuessMinigame() {
-  userLockedGuess = null;
-  const slider = getEl('guess-slider');
-  const valDisplay = getEl('guess-val-display');
-  const lockBtn = getEl('guess-lock-btn');
-  const skipBtn = getEl('guess-skip-btn');
-  if (slider) slider.value = 50;
-  if (valDisplay) valDisplay.textContent = '50';
-  if (lockBtn) {
-    lockBtn.textContent = 'lock it in';
-    lockBtn.disabled = false;
-  }
-  if (skipBtn) {
-    skipBtn.textContent = 'skip';
-    skipBtn.disabled = false;
-  }
-}
-
 // Loading Animation
 export function startLoading() {
   hideError();
-  resetGuessMinigame();
   showScreen('loading');
   const loadingLineEl = getEl('loading-line');
   let lineIndex = 0;
@@ -420,7 +397,7 @@ export function triggerConfetti() {
   }
 }
 
-// Gold confetti for Legendary Cards (Section 6)
+// Gold confetti for Legendary Cards
 export function triggerGoldConfetti() {
   if (typeof window !== 'undefined' && typeof window.confetti === 'function') {
     window.confetti({
@@ -598,7 +575,7 @@ export function animateCards() {
   });
 }
 
-// --- 6. TYPING EFFECT WITH SKIP (Section 6) ---
+// --- 5. TYPING EFFECT WITH SKIP ---
 export function stopTypingEffect() {
   if (typingTimeoutId) {
     clearTimeout(typingTimeoutId);
@@ -689,40 +666,6 @@ export function renderTypingReaction(lines) {
   }, 700);
 }
 
-// --- 7. ROAST LEVEL SWITCHER (Section 6) ---
-export function initRoastLevel() {
-  if (typeof localStorage !== 'undefined') {
-    currentRoastLevel = localStorage.getItem(ROAST_STORAGE_KEY) || 'Medium';
-  }
-  updateRoastChipsUI();
-}
-
-export function updateRoastChipsUI() {
-  const chips = document.querySelectorAll('.roast-chip');
-  chips.forEach(chip => {
-    const level = chip.getAttribute('data-level');
-    chip.classList.toggle('active', level === currentRoastLevel);
-  });
-}
-
-export function setRoastLevel(level) {
-  if (currentRoastLevel === level && currentAnalysis) return;
-  currentRoastLevel = level;
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(ROAST_STORAGE_KEY, level);
-  }
-  updateRoastChipsUI();
-  playPop();
-
-  if (currentVibeData) {
-    const updated = analyzeProfile(currentVibeData, currentRoastLevel);
-    currentAnalysis = updated;
-    const verdictEl = getEl('verdict-text');
-    if (verdictEl) verdictEl.textContent = `"${updated.verdict}"`;
-    renderTypingReaction(updated.reactionLines);
-  }
-}
-
 // Render Profile and Basic Stats with count-up numbers
 export function renderBasicResult(data) {
   const { profile, stats } = data;
@@ -776,11 +719,11 @@ export function renderFullResult(data) {
   currentVibeData = data;
   renderBasicResult(data);
 
-  // Run Reaction Engine with active roast level
-  const analysis = analyzeProfile(data, currentRoastLevel);
+  // Run Reaction Engine
+  const analysis = analyzeProfile(data);
   currentAnalysis = analysis;
 
-  // 1. Rarity Badges & Card Glow (Section 6)
+  // 1. Rarity Badges & Card Glow
   const resultContainer = getEl('result-container');
   const rarityBadge = getEl('rarity-badge');
   const rarityClasses = ['rarity-common', 'rarity-rare', 'rarity-epic', 'rarity-legendary'];
@@ -795,7 +738,7 @@ export function renderFullResult(data) {
     rarityBadge.textContent = analysis.rarity;
   }
 
-  // 2. Secret Title Banner & Unlock (Section 6)
+  // 2. Secret Title Banner & Unlock
   const secretBanner = getEl('secret-title-banner');
   if (analysis.isSecret) {
     if (secretBanner) secretBanner.hidden = false;
@@ -805,7 +748,7 @@ export function renderFullResult(data) {
   }
   updateSecretsUI();
 
-  // 3. Dev Title, Score Ring, Aura & Archetype (Sections 4 & 6)
+  // 3. Dev Title, Score Ring, Aura & Archetype
   const scoreLabelEl = getEl('score-label');
   const devTitleEl = getEl('dev-title');
   const auraBadge = getEl('aura-points-badge');
@@ -814,51 +757,33 @@ export function renderFullResult(data) {
   if (scoreLabelEl) scoreLabelEl.textContent = analysis.label;
   if (devTitleEl) devTitleEl.textContent = analysis.title;
   if (auraBadge) {
-    auraBadge.textContent = analysis.formattedAura;
+    auraBadge.textContent = `${analysis.formattedAura} aura`;
     auraBadge.classList.toggle('aura-negative', analysis.aura < 0);
   }
   if (archetypeLine) {
-    archetypeLine.textContent = analysis.archetypes.summaryLine;
+    archetypeLine.textContent = analysis.archetypes.summaryLine || analysis.archetypes;
   }
   renderScoreRing(analysis.score);
 
-  // 4. Guess Minigame Result Card (Section 6)
-  const guessResultCard = getEl('guess-result-card');
-  const guessResultTitle = getEl('guess-result-title');
-  const guessResultComment = getEl('guess-result-comment');
-
-  if (userLockedGuess !== null) {
-    const guessEval = evaluateGuess(userLockedGuess, analysis.score);
-    if (guessResultTitle) {
-      guessResultTitle.textContent = `${guessEval.title.toUpperCase()} (guessed ${userLockedGuess}, actual ${analysis.score})`;
-    }
-    if (guessResultComment) {
-      guessResultComment.textContent = guessEval.comment;
-    }
-    if (guessResultCard) guessResultCard.hidden = false;
-  } else {
-    if (guessResultCard) guessResultCard.hidden = true;
-  }
-
-  // 5. Typing Effect Reactions (Section 6)
+  // 4. Typing Effect Reactions
   renderTypingReaction(analysis.reactionLines);
 
-  // 6. Language Bar
+  // 5. Language Bar
   renderLanguageBar(data.languages);
 
-  // 7. Contribution Heatmap
+  // 6. Contribution Heatmap
   renderHeatmap(data.calendar);
 
-  // 8. Top 2 Repos
+  // 7. Top 2 Repos
   renderTopRepos(data.topRepos);
 
-  // 9. Verdict
+  // 8. Verdict
   const verdictTextEl = getEl('verdict-text');
   if (verdictTextEl) {
     verdictTextEl.textContent = `"${analysis.verdict}"`;
   }
 
-  // 10. Daily Vibe (Section 6)
+  // 9. Daily Vibe
   const dailyVibeText = getEl('daily-vibe-text');
   if (dailyVibeText) {
     dailyVibeText.textContent = analysis.dailyVibe;
@@ -867,7 +792,7 @@ export function renderFullResult(data) {
   // Staggered card animation
   animateCards();
 
-  // 11. Audio & Confetti by Tier / Secret (Section 6)
+  // 10. Audio & Confetti by Tier / Secret
   triggerHaptic(40);
 
   if (analysis.isSecret) {
@@ -953,7 +878,7 @@ export async function handleCheckVibe(rawInput) {
   }
 }
 
-// --- FUN EXTRA 1: SHARE CARD DOWNLOAD (1080 x 1350 PNG) ---
+// --- SHARE CARD DOWNLOAD (1080 x 1350 PNG) ---
 export async function downloadShareCard() {
   if (!currentVibeData || !currentAnalysis) return;
   const shareBtn = getEl('share-btn');
@@ -1063,7 +988,7 @@ export async function downloadShareCard() {
   }
 }
 
-// --- FUN EXTRA 2: UPGRADED VIBE BATTLE (Sections 6 & 7) ---
+// --- UPGRADED VIBE BATTLE ---
 export async function handleCompareSubmit(user1Raw, user2Raw) {
   const user1 = cleanInputUsername(user1Raw);
   const user2 = cleanInputUsername(user2Raw);
@@ -1102,7 +1027,7 @@ export async function handleCompareSubmit(user1Raw, user2Raw) {
   const originalBattleText = battleBtn ? battleBtn.textContent : '';
   if (battleBtn) battleBtn.textContent = 'battling... ⚔️';
 
-  // 1.2s "FIGHT" Intro Banner (Section 6)
+  // 1.2s "FIGHT" Intro Banner
   if (introOverlay) introOverlay.hidden = false;
   playPop();
   triggerHaptic(50);
@@ -1133,8 +1058,8 @@ export async function handleCompareSubmit(user1Raw, user2Raw) {
       return;
     }
 
-    const a1 = analyzeProfile(data1, currentRoastLevel);
-    const a2 = analyzeProfile(data2, currentRoastLevel);
+    const a1 = analyzeProfile(data1);
+    const a2 = analyzeProfile(data2);
 
     // Ensure intro overlay stays visible for at least 1200ms
     const elapsed = Date.now() - startTime;
@@ -1185,7 +1110,7 @@ export function renderCompareResults(data1, a1, data2, a2) {
       <h4 class="compare-user-name">${data.profile.name || data.profile.login}</h4>
       <span class="compare-user-handle">@${data.profile.login}</span>
       <div class="compare-user-score gradient-text">${a.score}</div>
-      <div class="score-label" style="font-size:0.9rem;">${a.label} &bull; ${a.formattedAura}</div>
+      <div class="score-label" style="font-size:0.9rem;">${a.label} &bull; ${a.formattedAura} aura</div>
       <div class="compare-user-title gradient-text">${a.title}</div>
       <div style="font-size:0.8rem; color:var(--muted-text); margin-top:4px;">
         ⭐ ${formatNumber(data.stats.stars)} &bull; ${formatNumber(data.stats.commits)} commits &bull; ${data.stats.longestStreak}d streak
@@ -1228,10 +1153,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const compareUser1 = getEl('compare-user1');
   const compareUser2 = getEl('compare-user2');
   const reactionCard = getEl('reaction-card');
-  const guessSlider = getEl('guess-slider');
-  const guessValDisplay = getEl('guess-val-display');
-  const guessLockBtn = getEl('guess-lock-btn');
-  const guessSkipBtn = getEl('guess-skip-btn');
 
   // Top Controls
   if (themeToggleBtn) {
@@ -1241,48 +1162,10 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     soundToggleBtn.addEventListener('click', toggleSound);
   }
 
-  // Roast Level Chips
-  const roastChips = document.querySelectorAll('.roast-chip');
-  roastChips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      const level = chip.getAttribute('data-level');
-      if (level) setRoastLevel(level);
-    });
-  });
-
   // Skip Typing Effect when tapping reaction card
   if (reactionCard) {
     reactionCard.addEventListener('click', () => {
       skipTypingInstantly();
-    });
-  }
-
-  // Guess the Score Slider & Buttons
-  if (guessSlider && guessValDisplay) {
-    guessSlider.addEventListener('input', () => {
-      guessValDisplay.textContent = guessSlider.value;
-      playPop();
-    });
-  }
-
-  if (guessLockBtn) {
-    guessLockBtn.addEventListener('click', () => {
-      if (guessSlider) {
-        userLockedGuess = Number(guessSlider.value);
-        guessLockBtn.textContent = 'locked in! ✓';
-        guessLockBtn.disabled = true;
-        playPop();
-        triggerHaptic(25);
-      }
-    });
-  }
-
-  if (guessSkipBtn) {
-    guessSkipBtn.addEventListener('click', () => {
-      userLockedGuess = null;
-      guessSkipBtn.textContent = 'skipped';
-      guessSkipBtn.disabled = true;
-      playPop();
     });
   }
 
@@ -1352,10 +1235,9 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     });
   }
 
-  // Initialize Audio, Theme, Secrets UI, and Roast Level
+  // Initialize Audio, Theme, and Secrets UI
   initAudio();
   initTheme();
-  initRoastLevel();
   updateSecretsUI();
   showScreen('landing');
 }

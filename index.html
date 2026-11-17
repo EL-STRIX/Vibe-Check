@@ -61,33 +61,11 @@
       </div>
     </section>
 
-    <!-- Screen 2: Loading & Guess the Score Mini-Game (Section 6) -->
+    <!-- Screen 2: Loading (Clean Animated Loading Screen) -->
     <section id="screen-loading" class="screen screen-loading" hidden>
       <div class="loading-content">
         <div class="loading-blob"></div>
         <p id="loading-line" class="loading-text">stalking your commits...</p>
-
-        <!-- Guess the Score Mini-Game -->
-        <div id="guess-container" class="guess-container vibe-card">
-          <div class="guess-header">
-            <span class="guess-badge">quick minigame 🎯</span>
-            <span class="guess-tag">optional</span>
-          </div>
-          <p class="guess-prompt">guess your vibe score before the reveal:</p>
-          <div class="guess-slider-box">
-            <span id="guess-val-display" class="guess-val-display gradient-text">50</span>
-            <input type="range" id="guess-slider" class="guess-slider" min="0" max="100" value="50" />
-            <div class="guess-slider-labels">
-              <span>0</span>
-              <span>50</span>
-              <span>100</span>
-            </div>
-          </div>
-          <div class="guess-actions">
-            <button id="guess-lock-btn" class="btn btn-sm btn-gradient" type="button">lock it in</button>
-            <button id="guess-skip-btn" class="btn btn-sm btn-secondary" type="button">skip</button>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -147,16 +125,7 @@
           <h2 id="dev-title" class="dev-title gradient-text">Quiet Builder</h2>
         </div>
 
-        <!-- Guess Comparison Result (Section 6) -->
-        <div id="guess-result-card" class="vibe-card guess-result-card" hidden>
-          <div class="guess-result-header">
-            <span class="guess-result-icon">🎯</span>
-            <span id="guess-result-title" class="guess-result-title">locked in</span>
-          </div>
-          <p id="guess-result-comment" class="guess-result-comment"></p>
-        </div>
-
-        <!-- 3. Reaction Text with Typing Effect & Roast Level Chips (Sections 5 & 6) -->
+        <!-- 3. Reaction Text with Typing Effect -->
         <div id="reaction-card" class="vibe-card reaction-card">
           <div class="reaction-card-header">
             <span class="reaction-tag">developer readout 💬</span>
@@ -166,16 +135,6 @@
             <span></span><span></span><span></span>
           </div>
           <div id="reaction-lines" class="reaction-lines"></div>
-
-          <!-- Roast Level Chips (Section 6) -->
-          <div class="roast-chips-wrapper">
-            <span class="roast-lbl">roast level:</span>
-            <div class="roast-chips">
-              <button class="roast-chip" data-level="Soft" type="button">Soft ☁️</button>
-              <button class="roast-chip active" data-level="Medium" type="button">Medium 🔥</button>
-              <button class="roast-chip" data-level="Savage" type="button">Savage 💀</button>
-            </div>
-          </div>
         </div>
 
         <!-- 4. Stats Row -->

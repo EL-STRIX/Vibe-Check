@@ -515,97 +515,6 @@ body::before {
   transform: translateY(-4px);
 }
 
-/* Guess Container */
-.guess-container {
-  width: 100%;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  border-color: rgba(167, 139, 250, 0.25);
-  animation: fadeIn 0.4s ease-out;
-}
-
-.guess-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.guess-badge {
-  font-family: var(--font-heading);
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--accent-pink);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.guess-tag {
-  font-size: 0.75rem;
-  color: var(--muted-text);
-}
-
-.guess-prompt {
-  font-size: 0.95rem;
-  color: var(--text-color);
-  font-weight: 500;
-}
-
-.guess-slider-box {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.guess-val-display {
-  font-family: var(--font-heading);
-  font-size: 2.2rem;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.guess-slider {
-  width: 100%;
-  height: 8px;
-  border-radius: 4px;
-  outline: none;
-  -webkit-appearance: none;
-  background: rgba(245, 243, 255, 0.15);
-  cursor: pointer;
-}
-
-.guess-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--accent-pink);
-  box-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-
-.guess-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-}
-
-.guess-slider-labels {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--muted-text);
-  padding: 0 4px;
-}
-
-.guess-actions {
-  display: flex;
-  gap: 10px;
-}
 
 /* ==========================================================================
    Screen 3: Result Screen
@@ -848,36 +757,7 @@ body::before {
   line-height: 1.15;
 }
 
-/* Guess Result Card */
-.guess-result-card {
-  padding: 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: left;
-  border-color: rgba(244, 114, 182, 0.25);
-}
-
-.guess-result-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.guess-result-title {
-  font-family: var(--font-heading);
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--accent-pink);
-  text-transform: uppercase;
-}
-
-.guess-result-comment {
-  font-size: 0.92rem;
-  color: var(--text-color);
-}
-
-/* 3. Reaction Text Card & Roast Level Chips */
+/* 3. Reaction Text Card */
 .reaction-card {
   padding: 22px 24px;
   text-align: left;
@@ -956,52 +836,6 @@ body::before {
   background: rgba(167, 139, 250, 0.06);
 }
 
-/* Roast Chips */
-.roast-chips-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border-color);
-}
-
-.roast-lbl {
-  font-size: 0.75rem;
-  color: var(--muted-text);
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.roast-chips {
-  display: flex;
-  gap: 6px;
-}
-
-.roast-chip {
-  padding: 5px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--border-color);
-  background: rgba(245, 243, 255, 0.04);
-  color: var(--muted-text);
-  font-family: var(--font-heading);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.roast-chip:hover {
-  border-color: var(--accent-pink);
-  color: var(--text-color);
-}
-
-.roast-chip.active {
-  background: var(--accent-gradient);
-  border-color: transparent;
-  color: #FFFFFF;
-  box-shadow: 0 4px 14px rgba(244, 114, 182, 0.3);
-}
 
 /* 4. Stats Row / Grid */
 .stats-grid {
