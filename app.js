@@ -255,8 +255,10 @@ export function showScreen(screenName) {
   if (screenCompare) screenCompare.hidden = (screenName !== 'compare');
 
   const snapToTop = () => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
       window.scrollTo(0, 0);
+    }
+    if (typeof document !== 'undefined') {
       if (document.documentElement) document.documentElement.scrollTop = 0;
       if (document.body) document.body.scrollTop = 0;
     }
@@ -1113,7 +1115,6 @@ export async function downloadShareCard() {
     if (shareBtn) shareBtn.textContent = originalBtnText;
   }
 }
-}
 
 // --- UPGRADED VIBE BATTLE ---
 export async function handleCompareSubmit(user1Raw, user2Raw) {
@@ -1297,6 +1298,17 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   }
 
   // Form Submissions
+  const submitBtn = getEl('submit-btn');
+  if (submitBtn) {
+    submitBtn.addEventListener('click', (e) => {
+      const value = usernameInput?.value?.trim();
+      if (value) {
+        e.preventDefault();
+        handleCheckVibe(value);
+      }
+    });
+  }
+
   if (vibeForm) {
     vibeForm.addEventListener('submit', (e) => {
       e.preventDefault();
