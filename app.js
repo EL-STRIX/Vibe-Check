@@ -963,16 +963,16 @@ export async function downloadShareCard() {
 
   if (shareName) {
     shareName.textContent = displayName;
-    // Auto-shrink font size if name is long so it fits on one line (minimum 30px)
+    // Auto-shrink font size if name is long so it fits completely on one line without any ellipsis
     const len = displayName.length;
-    if (len > 24) {
-      shareName.style.fontSize = '30px';
-    } else if (len > 18) {
-      shareName.style.fontSize = '34px';
-    } else if (len > 13) {
-      shareName.style.fontSize = '38px';
+    if (len > 30) {
+      shareName.style.fontSize = '28px';
+    } else if (len > 22) {
+      shareName.style.fontSize = '32px';
+    } else if (len > 16) {
+      shareName.style.fontSize = '36px';
     } else {
-      shareName.style.fontSize = '44px';
+      shareName.style.fontSize = '42px';
     }
   }
 
@@ -983,16 +983,16 @@ export async function downloadShareCard() {
   if (shareTitle) {
     const titleText = analysis.title || 'Code Alchemist';
     shareTitle.textContent = titleText;
-    // Auto-shrink font size if title is long so it stays on one line centered (minimum 36px)
+    // Auto-shrink font size if title is long so it stays on one line centered without any ellipsis
     const tLen = titleText.length;
-    if (tLen > 24) {
+    if (tLen > 28) {
+      shareTitle.style.fontSize = '32px';
+    } else if (tLen > 20) {
       shareTitle.style.fontSize = '38px';
-    } else if (tLen > 18) {
-      shareTitle.style.fontSize = '44px';
-    } else if (tLen > 13) {
-      shareTitle.style.fontSize = '50px';
+    } else if (tLen > 14) {
+      shareTitle.style.fontSize = '46px';
     } else {
-      shareTitle.style.fontSize = '58px';
+      shareTitle.style.fontSize = '56px';
     }
   }
 
@@ -1082,14 +1082,19 @@ export async function downloadShareCard() {
   }
 
   try {
-    // Reveal canvasNode offscreen at (0, 0)
+    // Reveal canvasNode offscreen at exact 1080x1350 geometry
     canvasNode.style.display = 'flex';
     canvasNode.style.opacity = '1';
     canvasNode.style.visibility = 'visible';
-    canvasNode.style.position = 'fixed';
+    canvasNode.style.position = 'absolute';
+    canvasNode.style.left = '-9999px';
     canvasNode.style.top = '0';
-    canvasNode.style.left = '0';
-    canvasNode.style.zIndex = '-9999';
+    canvasNode.style.width = '1080px';
+    canvasNode.style.minWidth = '1080px';
+    canvasNode.style.maxWidth = '1080px';
+    canvasNode.style.height = '1350px';
+    canvasNode.style.minHeight = '1350px';
+    canvasNode.style.maxHeight = '1350px';
 
     // Wait 2 animation frames for browser layout and font rendering
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));

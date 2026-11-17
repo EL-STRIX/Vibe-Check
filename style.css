@@ -1343,11 +1343,15 @@ body::before {
    High-Resolution 1080x1350 Share Card Canvas (Exact Spec)
    ========================================================================== */
 .share-card-canvas {
-  position: fixed;
-  left: 0;
+  position: absolute;
+  left: -9999px;
   top: 0;
-  width: 1080px;
-  height: 1350px;
+  width: 1080px !important;
+  min-width: 1080px !important;
+  max-width: 1080px !important;
+  height: 1350px !important;
+  min-height: 1350px !important;
+  max-height: 1350px !important;
   background: radial-gradient(circle at 50% 0%, rgba(167, 139, 250, 0.22) 0%, rgba(244, 114, 182, 0.1) 45%, transparent 70%), linear-gradient(180deg, #181332 0%, #0D0A1A 100%);
   background-color: #120D22;
   box-sizing: border-box;
@@ -1362,7 +1366,7 @@ body::before {
   font-family: var(--font-body);
   z-index: -9999;
   pointer-events: none;
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* Rarity Tier Borders and Glows */
@@ -1450,23 +1454,23 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
 }
 
 .share-name {
   font-family: var(--font-heading);
   font-size: 42px;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.2;
   color: #F5F3FF;
   white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: center;
   margin: 0;
   padding: 0;
+  overflow: visible;
 }
 
 .share-handle {
@@ -1483,25 +1487,25 @@ body::before {
 /* 3. Dev Title */
 .share-title-box {
   width: 100%;
-  max-width: 940px;
+  max-width: 960px;
   display: flex;
   justify-content: center;
   align-items: center;
+  text-align: center;
 }
 
 .share-title {
   font-family: var(--font-heading);
-  font-size: 58px;
+  font-size: 56px;
   font-weight: 800;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.02em;
   white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  text-align: center;
   margin: 0;
   padding: 0;
   color: #F472B6;
+  overflow: visible;
 }
 
 /* 4. Score Element */
