@@ -657,39 +657,6 @@ body::before {
   display: none;
 }
 
-/* Secret Title Unlocked Banner (Section 6) */
-.secret-title-banner {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(244, 114, 182, 0.15) 100%);
-  border-color: rgba(245, 158, 11, 0.4);
-  animation: fadeIn 0.4s ease-out;
-}
-
-.secret-sparkle {
-  font-size: 1.6rem;
-}
-
-.secret-banner-text {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
-
-.secret-banner-text strong {
-  font-family: var(--font-heading);
-  font-size: 0.95rem;
-  color: #FBBF24;
-  letter-spacing: 0.02em;
-}
-
-.secret-banner-text span {
-  font-size: 0.8rem;
-  color: var(--muted-text);
-}
-
 /* 2. Dev Title & Score Card */
 .title-score-card {
   display: flex;

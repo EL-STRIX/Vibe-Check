@@ -793,15 +793,10 @@ export function renderFullResult(data) {
     rarityBadge.textContent = analysis.rarity;
   }
 
-  // 2. Secret Title Banner & Unlock
-  const secretBanner = getEl('secret-title-banner');
+  // 2. Secret Title Unlock Record
   if (analysis.isSecret) {
-    if (secretBanner) secretBanner.hidden = false;
     recordSecretFound(analysis.title);
-  } else {
-    if (secretBanner) secretBanner.hidden = true;
   }
-  updateSecretsUI();
 
   // 3. Dev Title, Score Ring, Aura & Archetype
   const scoreLabelEl = getEl('score-label');
