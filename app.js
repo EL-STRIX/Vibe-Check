@@ -240,6 +240,10 @@ export function updateSecretsUI() {
 
 // --- 4. NAVIGATION & SCREENS ---
 export function showScreen(screenName) {
+  if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+    document.activeElement.blur();
+  }
+
   const screenLanding = getEl('screen-landing');
   const screenLoading = getEl('screen-loading');
   const screenResult = getEl('screen-result');
@@ -250,10 +254,27 @@ export function showScreen(screenName) {
   if (screenResult) screenResult.hidden = (screenName !== 'result');
   if (screenCompare) screenCompare.hidden = (screenName !== 'compare');
 
-  if (typeof window !== 'undefined') {
-    window.scrollTo(0, 0);
-    if (document.documentElement) document.documentElement.scrollTop = 0;
-    if (document.body) document.body.scrollTop = 0;
+  const snapToTop = () => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    }
+    const profileCard = getEl('profile-card');
+    if (screenName === 'result' && profileCard && typeof profileCard.scrollIntoView === 'function') {
+      try {
+        profileCard.scrollIntoView({ block: 'start', inline: 'nearest' });
+      } catch (_) {}
+    }
+  };
+
+  snapToTop();
+  if (typeof requestAnimationFrame !== 'undefined') {
+    requestAnimationFrame(() => {
+      snapToTop();
+      setTimeout(snapToTop, 50);
+      setTimeout(snapToTop, 150);
+    });
   }
 }
 
@@ -561,9 +582,18 @@ export function animateCards() {
   const container = getEl('result-container');
   if (!container) return;
 
+  const prefersReducedMotion = typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   const cards = container.querySelectorAll('.vibe-card');
   cards.forEach((card, index) => {
     card.classList.remove('card-animate');
+    if (prefersReducedMotion) {
+      card.style.opacity = '1';
+      card.style.transform = 'none';
+      return;
+    }
     void card.offsetWidth; // Reflow
     card.style.animationDelay = `${index * 0.06}s`;
     card.classList.add('card-animate');
@@ -663,25 +693,47 @@ export function renderTypingReaction(lines) {
 
 // Render Profile and Basic Stats with count-up numbers
 export function renderBasicResult(data) {
-  const { profile, stats } = data;
+  const { profile = {}, stats = {} } = data || {};
 
   // 1. Profile Card
+  const profileCard = getEl('profile-card');
+  if (profileCard) {
+    profileCard.hidden = false;
+    profileCard.style.display = 'flex';
+  }
+
   const avatarEl = getEl('profile-avatar');
+  const avatarFallback = getEl('profile-avatar-fallback');
   const nameEl = getEl('profile-name');
   const handleEl = getEl('profile-handle');
   const bioEl = getEl('profile-bio');
 
-  if (avatarEl) {
-    avatarEl.style.display = 'block';
-    avatarEl.src = profile.avatar || '';
-    avatarEl.alt = `${profile.login}'s avatar`;
-    avatarEl.onerror = () => {
-      avatarEl.style.display = 'none';
-    };
+  const displayName = profile.name || profile.login || 'Anonymous Developer';
+  const displayHandle = profile.login || 'developer';
+  const initial = (displayName || 'V').trim().charAt(0).toUpperCase() || 'V';
+
+  if (avatarFallback) {
+    avatarFallback.textContent = initial;
   }
 
-  if (nameEl) nameEl.textContent = profile.name || profile.login;
-  if (handleEl) handleEl.textContent = `@${profile.login}`;
+  if (avatarEl) {
+    if (profile.avatar) {
+      avatarEl.style.display = 'block';
+      if (avatarFallback) avatarFallback.style.display = 'none';
+      avatarEl.src = profile.avatar;
+      avatarEl.alt = `${displayHandle}'s avatar`;
+      avatarEl.onerror = () => {
+        avatarEl.style.display = 'none';
+        if (avatarFallback) avatarFallback.style.display = 'flex';
+      };
+    } else {
+      avatarEl.style.display = 'none';
+      if (avatarFallback) avatarFallback.style.display = 'flex';
+    }
+  }
+
+  if (nameEl) nameEl.textContent = displayName;
+  if (handleEl) handleEl.textContent = `@${displayHandle}`;
 
   if (bioEl) {
     if (profile.bio && profile.bio.trim()) {
@@ -857,8 +909,8 @@ export async function handleCheckVibe(rawInput) {
     }
 
     hideError();
-    renderFullResult(data);
     showScreen('result');
+    renderFullResult(data);
   } catch (err) {
     stopLoading();
     showScreen('landing');
@@ -1228,6 +1280,11 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         showScreen('landing');
       }
     });
+  }
+
+  // Prevent browser from restoring scrolled positions on transitions
+  if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
   }
 
   // Initialize Audio, Theme, and Secrets UI
