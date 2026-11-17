@@ -1,31 +1,42 @@
 // app.js - Main Application Logic
 
-// DOM Elements
-const themeToggleBtn = document.getElementById('theme-toggle');
-const themeIcon = document.getElementById('theme-icon');
-const screenLanding = document.getElementById('screen-landing');
-const screenLoading = document.getElementById('screen-loading');
-const screenResult = document.getElementById('screen-result');
-const vibeForm = document.getElementById('vibe-form');
-const usernameInput = document.getElementById('username-input');
+// Loading screen lines that rotate every 1.5 seconds
+const LOADING_LINES = [
+  'stalking your commits...',
+  'judging your commit messages...',
+  'counting your stars, relax...',
+  'asking your repos how they feel...'
+];
 
-// Theme Management
+let loadingInterval = null;
 const THEME_STORAGE_KEY = 'vibe-check-theme';
 
-function initTheme() {
+// Helper: Safely get DOM element
+function getEl(id) {
+  return typeof document !== 'undefined' ? document.getElementById(id) : null;
+}
+
+// Theme Management
+export function initTheme() {
+  if (typeof localStorage === 'undefined' || typeof document === 'undefined') return;
   const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
   applyTheme(savedTheme);
 }
 
-function applyTheme(theme) {
+export function applyTheme(theme) {
+  if (typeof document === 'undefined') return;
   document.documentElement.setAttribute('data-theme', theme);
-  localStorage.setItem(THEME_STORAGE_KEY, theme);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  }
+  const themeIcon = getEl('theme-icon');
   if (themeIcon) {
     themeIcon.textContent = theme === 'dark' ? '🌙' : '☀️';
   }
 }
 
-function toggleTheme() {
+export function toggleTheme() {
+  if (typeof document === 'undefined') return;
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(newTheme);
@@ -33,40 +44,199 @@ function toggleTheme() {
 
 // Screen Navigation
 export function showScreen(screenName) {
+  const screenLanding = getEl('screen-landing');
+  const screenLoading = getEl('screen-loading');
+  const screenResult = getEl('screen-result');
+
   if (screenLanding) screenLanding.hidden = (screenName !== 'landing');
   if (screenLoading) screenLoading.hidden = (screenName !== 'loading');
   if (screenResult) screenResult.hidden = (screenName !== 'result');
+  if (typeof window !== 'undefined') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }
 
-// Shake animation helper for empty or invalid input
-function triggerInputShake(customPlaceholder) {
+// Shake animation helper for input errors
+export function triggerInputShake(customPlaceholder) {
+  const usernameInput = getEl('username-input');
   if (!usernameInput) return;
   usernameInput.classList.remove('shake');
   void usernameInput.offsetWidth; // Force DOM reflow to restart animation
   usernameInput.classList.add('shake');
   if (customPlaceholder) {
+    usernameInput.value = '';
     usernameInput.placeholder = customPlaceholder;
   }
   usernameInput.focus();
 }
 
-// Event Listeners
-if (themeToggleBtn) {
-  themeToggleBtn.addEventListener('click', toggleTheme);
+// Abbreviate numbers (1.2k, 3.4M) so cards never break
+export function formatNumber(num) {
+  if (num === null || num === undefined) return '0';
+  const n = Number(num);
+  if (isNaN(n)) return '0';
+  if (n >= 1_000_000) {
+    const formatted = (n / 1_000_000).toFixed(1).replace(/\.0$/, '');
+    return `${formatted}M`;
+  }
+  if (n >= 1_000) {
+    const formatted = (n / 1_000).toFixed(1).replace(/\.0$/, '');
+    return `${formatted}k`;
+  }
+  return n.toLocaleString();
 }
 
-if (vibeForm) {
-  vibeForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const value = usernameInput?.value?.trim();
-    if (!value) {
-      triggerInputShake('type something bestie');
+// Loading Animation
+export function startLoading() {
+  showScreen('loading');
+  const loadingLineEl = getEl('loading-line');
+  let lineIndex = 0;
+  if (loadingLineEl) {
+    loadingLineEl.textContent = LOADING_LINES[0];
+  }
+
+  if (loadingInterval) clearInterval(loadingInterval);
+  loadingInterval = setInterval(() => {
+    lineIndex = (lineIndex + 1) % LOADING_LINES.length;
+    if (loadingLineEl) {
+      loadingLineEl.classList.add('fade-out');
+      setTimeout(() => {
+        loadingLineEl.textContent = LOADING_LINES[lineIndex];
+        loadingLineEl.classList.remove('fade-out');
+      }, 250);
+    }
+  }, 1500);
+}
+
+export function stopLoading() {
+  if (loadingInterval) {
+    clearInterval(loadingInterval);
+    loadingInterval = null;
+  }
+}
+
+// Render Profile and Stats
+export function renderBasicResult(data) {
+  const { profile, stats } = data;
+
+  // 1. Profile Card
+  const avatarEl = getEl('profile-avatar');
+  const nameEl = getEl('profile-name');
+  const handleEl = getEl('profile-handle');
+  const bioEl = getEl('profile-bio');
+
+  if (avatarEl) {
+    avatarEl.style.display = 'block';
+    avatarEl.src = profile.avatar || '';
+    avatarEl.alt = `${profile.login}'s avatar`;
+    avatarEl.onerror = () => {
+      avatarEl.style.display = 'none';
+    };
+  }
+
+  if (nameEl) nameEl.textContent = profile.name || profile.login;
+  if (handleEl) handleEl.textContent = `@${profile.login}`;
+
+  if (bioEl) {
+    if (profile.bio && profile.bio.trim()) {
+      bioEl.textContent = profile.bio.trim();
+      bioEl.style.display = '-webkit-box';
+    } else {
+      bioEl.textContent = '';
+      bioEl.style.display = 'none';
+    }
+  }
+
+  // 4. Stats Row
+  const reposEl = getEl('stat-repos');
+  const starsEl = getEl('stat-stars');
+  const commitsEl = getEl('stat-commits');
+  const prsEl = getEl('stat-prs');
+  const followersEl = getEl('stat-followers');
+  const streakEl = getEl('stat-streak');
+
+  if (reposEl) reposEl.textContent = formatNumber(profile.publicRepos || 0);
+  if (starsEl) starsEl.textContent = formatNumber(stats.stars || 0);
+  if (commitsEl) commitsEl.textContent = formatNumber(stats.commits || 0);
+  if (prsEl) prsEl.textContent = formatNumber(stats.prsMerged || 0);
+  if (followersEl) followersEl.textContent = formatNumber(profile.followers || 0);
+  if (streakEl) streakEl.textContent = formatNumber(stats.longestStreak || 0);
+}
+
+// Fetch vibe data from serverless API
+export async function handleCheckVibe(rawInput) {
+  const username = rawInput ? rawInput.trim() : '';
+  if (!username) {
+    triggerInputShake('type something bestie');
+    return;
+  }
+
+  startLoading();
+
+  try {
+    const res = await fetch(`/api/vibe?user=${encodeURIComponent(username)}`);
+    const data = await res.json();
+    stopLoading();
+
+    if (!res.ok || data.error) {
+      showScreen('landing');
+      if (data.error === 'not_found') {
+        triggerInputShake("this id doesn't exist. did you make it up? 💀 try again");
+      } else if (data.error === 'rate_limited') {
+        triggerInputShake("github is tired rn, try again in a minute");
+      } else {
+        triggerInputShake("github is tired rn, try again in a minute");
+      }
       return;
     }
-    // Form submission processing will be wired in Phase 3
-  });
+
+    renderBasicResult(data);
+    showScreen('result');
+  } catch (err) {
+    stopLoading();
+    showScreen('landing');
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      triggerInputShake("you're offline. touch grass, then come back");
+    } else {
+      triggerInputShake("github is tired rn, try again in a minute");
+    }
+  }
 }
 
-// Initialize on DOM load
-initTheme();
-showScreen('landing');
+// Browser Initialization
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  const themeToggleBtn = getEl('theme-toggle');
+  const vibeForm = getEl('vibe-form');
+  const usernameInput = getEl('username-input');
+  const tryAnotherBtn = getEl('try-another-btn');
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', toggleTheme);
+  }
+
+  if (vibeForm) {
+    vibeForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const value = usernameInput?.value?.trim();
+      if (!value) {
+        triggerInputShake('type something bestie');
+        return;
+      }
+      handleCheckVibe(value);
+    });
+  }
+
+  if (tryAnotherBtn) {
+    tryAnotherBtn.addEventListener('click', () => {
+      showScreen('landing');
+      if (usernameInput) {
+        usernameInput.value = '';
+        usernameInput.placeholder = 'github username or profile url';
+        usernameInput.focus();
+      }
+    });
+  }
+
+  initTheme();
+  showScreen('landing');
+}

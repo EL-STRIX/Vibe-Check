@@ -42,7 +42,7 @@
       </div>
     </section>
 
-    <!-- Screen 2: Loading (hidden for now) -->
+    <!-- Screen 2: Loading -->
     <section id="screen-loading" class="screen screen-loading" hidden>
       <div class="loading-content">
         <div class="loading-blob"></div>
@@ -50,9 +50,62 @@
       </div>
     </section>
 
-    <!-- Screen 3: Result (hidden for now) -->
+    <!-- Screen 3: Result -->
     <section id="screen-result" class="screen screen-result" hidden>
-      <div class="result-content"></div>
+      <div id="result-container" class="result-container">
+        <!-- 1. Profile Card -->
+        <div id="profile-card" class="vibe-card profile-card">
+          <img id="profile-avatar" class="profile-avatar" src="" alt="Avatar" />
+          <div class="profile-info">
+            <h2 id="profile-name" class="profile-name"></h2>
+            <span id="profile-handle" class="profile-handle"></span>
+            <p id="profile-bio" class="profile-bio"></p>
+          </div>
+        </div>
+
+        <!-- 2 & 3. Title, Score Ring & Reaction (Phase 4 & 5 placeholders) -->
+        <div id="title-score-container" class="title-score-container"></div>
+        <div id="reaction-container" class="reaction-container"></div>
+
+        <!-- 4. Stats Row -->
+        <div id="stats-grid" class="vibe-card stats-grid">
+          <div class="stat-item">
+            <span id="stat-repos" class="stat-number">0</span>
+            <span class="stat-label">repos</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-stars" class="stat-number">0</span>
+            <span class="stat-label">stars</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-commits" class="stat-number">0</span>
+            <span class="stat-label">commits</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-prs" class="stat-number">0</span>
+            <span class="stat-label">prs</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-followers" class="stat-number">0</span>
+            <span class="stat-label">followers</span>
+          </div>
+          <div class="stat-item">
+            <span id="stat-streak" class="stat-number">0</span>
+            <span class="stat-label">streak</span>
+          </div>
+        </div>
+
+        <!-- 5-9. Visual Extras & Verdict (Phase 4 & 5 placeholders) -->
+        <div id="visual-extras-container" class="visual-extras-container"></div>
+        <div id="verdict-container" class="verdict-container"></div>
+
+        <!-- 10. Action Buttons -->
+        <div class="action-buttons">
+          <button id="try-another-btn" class="btn btn-secondary" type="button">
+            try another
+          </button>
+        </div>
+      </div>
     </section>
   </div>
 
