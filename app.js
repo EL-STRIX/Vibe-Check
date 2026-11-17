@@ -613,45 +613,64 @@ export async function downloadShareCard() {
   if (shareStatStreak) shareStatStreak.textContent = `${stats.longestStreak || 0}d`;
   if (shareVerdict) shareVerdict.textContent = `"${analysis.verdict}"`;
 
-  // Avatar handling (use image if loadable, or draw initial circle fallback per Tech Stack Sec 10)
-  let avatarLoaded = false;
-  if (profile.avatar && shareAvatarImg) {
-    try {
-      // Create off-screen image test
-      await new Promise((resolve, reject) => {
-        const testImg = new Image();
-        testImg.crossOrigin = 'anonymous';
-        testImg.onload = () => {
-          shareAvatarImg.src = testImg.src;
-          shareAvatarImg.style.display = 'block';
-          if (shareAvatarFallback) shareAvatarFallback.style.display = 'none';
-          avatarLoaded = true;
-          resolve(true);
-        };
-        testImg.onerror = () => {
-          reject(false);
-        };
-        testImg.src = profile.avatar;
-      });
-    } catch (_) {
-      avatarLoaded = false;
-    }
+  // Always prepare fallback initial circle first
+  if (shareAvatarFallback) {
+    shareAvatarFallback.style.display = 'flex';
+    shareAvatarFallback.textContent = (profile.login || 'V')[0].toUpperCase();
+  }
+  if (shareAvatarImg) {
+    shareAvatarImg.style.display = 'none';
   }
 
-  if (!avatarLoaded) {
-    if (shareAvatarImg) shareAvatarImg.style.display = 'none';
-    if (shareAvatarFallback) {
-      shareAvatarFallback.style.display = 'flex';
-      shareAvatarFallback.textContent = (profile.login || 'V')[0].toUpperCase();
+  // Attempt to load avatar as local data URL to prevent canvas cross-origin taint
+  if (profile.avatar) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const imgRes = await fetch(profile.avatar, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (imgRes.ok) {
+        const blob = await imgRes.blob();
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+
+        if (dataUrl && shareAvatarImg) {
+          shareAvatarImg.src = dataUrl;
+          shareAvatarImg.style.display = 'block';
+          if (shareAvatarFallback) shareAvatarFallback.style.display = 'none';
+        }
+      }
+    } catch (_) {
+      // Fallback initial circle is already visible
     }
   }
 
   try {
+    // Reveal canvasNode at (0, 0)
+    canvasNode.style.display = 'flex';
+    canvasNode.style.opacity = '1';
+    canvasNode.style.visibility = 'visible';
+    canvasNode.style.position = 'fixed';
+    canvasNode.style.top = '0';
+    canvasNode.style.left = '0';
+    canvasNode.style.zIndex = '-9999';
+
+    // Wait for DOM reflow
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
     if (typeof window !== 'undefined' && window.htmlToImage) {
       const dataUrl = await window.htmlToImage.toPng(canvasNode, {
         width: 1080,
         height: 1350,
-        pixelRatio: 1
+        canvasWidth: 1080,
+        canvasHeight: 1350,
+        pixelRatio: 1,
+        backgroundColor: '#0F0B1E'
       });
 
       const link = document.createElement('a');
@@ -662,6 +681,7 @@ export async function downloadShareCard() {
   } catch (err) {
     console.error('Failed to generate share image:', err);
   } finally {
+    canvasNode.style.display = 'none';
     if (shareBtn) shareBtn.textContent = originalBtnText;
   }
 }
