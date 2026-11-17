@@ -26,6 +26,8 @@
   --theme-btn-border: rgba(245, 243, 255, 0.1);
   --secondary-btn-bg: rgba(26, 21, 48, 0.8);
   --secondary-btn-border: rgba(245, 243, 255, 0.12);
+  --badge-bg: rgba(167, 139, 250, 0.12);
+  --badge-border: rgba(167, 139, 250, 0.25);
 }
 
 [data-theme="light"] {
@@ -44,6 +46,8 @@
   --theme-btn-border: rgba(30, 27, 51, 0.08);
   --secondary-btn-bg: rgba(255, 255, 255, 0.9);
   --secondary-btn-border: rgba(30, 27, 51, 0.12);
+  --badge-bg: rgba(167, 139, 250, 0.14);
+  --badge-border: rgba(167, 139, 250, 0.22);
 }
 
 /* Reset & Base Styles */
@@ -422,6 +426,93 @@ body::before {
   display: none;
 }
 
+/* 2. Dev Title & Score Card */
+.title-score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 26px 20px;
+}
+
+.score-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.score-ring-wrapper {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+}
+
+.score-number {
+  font-family: var(--font-heading);
+  font-size: clamp(3rem, 10vw, 4.2rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.score-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.vibe-tag {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.score-label {
+  font-family: var(--font-heading);
+  font-size: clamp(1.05rem, 3.5vw, 1.25rem);
+  font-weight: 700;
+  color: var(--text-color);
+  letter-spacing: -0.01em;
+}
+
+.dev-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.8rem, 6vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+/* 3. Reaction Text Card (2-3 short lines) */
+.reaction-card {
+  padding: 22px 24px;
+  text-align: center;
+}
+
+.reaction-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reaction-line {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 3vw, 1.05rem);
+  line-height: 1.45;
+  color: var(--text-color);
+  font-weight: 450;
+}
+
+.reaction-line:last-child:not(:first-child) {
+  color: var(--muted-text);
+}
+
 /* 4. Stats Row / Grid */
 .stats-grid {
   display: grid;
@@ -454,6 +545,54 @@ body::before {
   color: var(--muted-text);
   text-transform: lowercase;
   letter-spacing: 0.02em;
+}
+
+/* 8. Badges: Small Pills */
+.badges-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: var(--badge-bg);
+  border: 1px solid var(--badge-border);
+  color: var(--text-color);
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform 0.2s ease;
+}
+
+.badge-pill:hover {
+  transform: translateY(-1px);
+}
+
+/* 9. One-line Verdict in Quotes */
+.verdict-card {
+  padding: 20px 24px;
+  text-align: center;
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, rgba(244, 114, 182, 0.08) 100%), var(--card-bg);
+}
+
+.verdict-text {
+  font-family: var(--font-heading);
+  font-size: clamp(0.98rem, 3.2vw, 1.12rem);
+  font-weight: 600;
+  font-style: italic;
+  color: var(--text-color);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
 }
 
 /* Action Buttons Container */

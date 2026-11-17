@@ -1,4 +1,5 @@
 // app.js - Main Application Logic
+import { analyzeProfile } from './reactions.js';
 
 // Loading screen lines that rotate every 1.5 seconds
 const LOADING_LINES = [
@@ -115,7 +116,7 @@ export function stopLoading() {
   }
 }
 
-// Render Profile and Stats
+// Render Profile and Basic Stats
 export function renderBasicResult(data) {
   const { profile, stats } = data;
 
@@ -163,6 +164,61 @@ export function renderBasicResult(data) {
   if (streakEl) streakEl.textContent = formatNumber(stats.longestStreak || 0);
 }
 
+// Render Full Result including Reaction Engine
+export function renderFullResult(data) {
+  // 1. Render Basic Profile & Stats
+  renderBasicResult(data);
+
+  // Run Reaction Engine
+  const analysis = analyzeProfile(data);
+
+  // 2. Dev Title & Vibe Score
+  const scoreNumEl = getEl('score-number');
+  const scoreLabelEl = getEl('score-label');
+  const devTitleEl = getEl('dev-title');
+
+  if (scoreNumEl) scoreNumEl.textContent = analysis.score;
+  if (scoreLabelEl) scoreLabelEl.textContent = analysis.label;
+  if (devTitleEl) devTitleEl.textContent = analysis.title;
+
+  // 3. Reaction Lines (2-3 short lines)
+  const reactionLinesEl = getEl('reaction-lines');
+  if (reactionLinesEl) {
+    reactionLinesEl.innerHTML = '';
+    analysis.reactionLines.forEach(line => {
+      const p = document.createElement('p');
+      p.className = 'reaction-line';
+      p.textContent = line;
+      reactionLinesEl.appendChild(p);
+    });
+  }
+
+  // 8. Badges (small pills, max 4)
+  const badgesContainerEl = getEl('badges-container');
+  if (badgesContainerEl) {
+    badgesContainerEl.innerHTML = '';
+    if (analysis.badges && analysis.badges.length > 0) {
+      analysis.badges.forEach(badge => {
+        const pill = document.createElement('span');
+        pill.className = 'badge-pill';
+        pill.textContent = badge;
+        badgesContainerEl.appendChild(pill);
+      });
+      badgesContainerEl.style.display = 'flex';
+    } else {
+      badgesContainerEl.style.display = 'none';
+    }
+  }
+
+  // 9. Verdict
+  const verdictTextEl = getEl('verdict-text');
+  if (verdictTextEl) {
+    verdictTextEl.textContent = `"${analysis.verdict}"`;
+  }
+
+  return analysis;
+}
+
 // Fetch vibe data from serverless API
 export async function handleCheckVibe(rawInput) {
   const username = rawInput ? rawInput.trim() : '';
@@ -190,7 +246,7 @@ export async function handleCheckVibe(rawInput) {
       return;
     }
 
-    renderBasicResult(data);
+    renderFullResult(data);
     showScreen('result');
   } catch (err) {
     stopLoading();

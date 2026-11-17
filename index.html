@@ -50,7 +50,7 @@
       </div>
     </section>
 
-    <!-- Screen 3: Result -->
+    <!-- Screen 3: Result (Top to bottom per Spec Section 2) -->
     <section id="screen-result" class="screen screen-result" hidden>
       <div id="result-container" class="result-container">
         <!-- 1. Profile Card -->
@@ -63,9 +63,24 @@
           </div>
         </div>
 
-        <!-- 2 & 3. Title, Score Ring & Reaction (Phase 4 & 5 placeholders) -->
-        <div id="title-score-container" class="title-score-container"></div>
-        <div id="reaction-container" class="reaction-container"></div>
+        <!-- 2. Dev Title & Vibe Score Ring Card -->
+        <div id="title-score-card" class="vibe-card title-score-card">
+          <div class="score-header">
+            <div id="score-ring-wrapper" class="score-ring-wrapper">
+              <span id="score-number" class="score-number gradient-text">0</span>
+            </div>
+            <div class="score-meta">
+              <span class="vibe-tag">vibe score</span>
+              <span id="score-label" class="score-label">mid but loading</span>
+            </div>
+          </div>
+          <h2 id="dev-title" class="dev-title gradient-text">Quiet Builder</h2>
+        </div>
+
+        <!-- 3. Reaction Text (2 to 3 short lines) -->
+        <div id="reaction-card" class="vibe-card reaction-card">
+          <div id="reaction-lines" class="reaction-lines"></div>
+        </div>
 
         <!-- 4. Stats Row -->
         <div id="stats-grid" class="vibe-card stats-grid">
@@ -95,11 +110,24 @@
           </div>
         </div>
 
-        <!-- 5-9. Visual Extras & Verdict (Phase 4 & 5 placeholders) -->
-        <div id="visual-extras-container" class="visual-extras-container"></div>
-        <div id="verdict-container" class="verdict-container"></div>
+        <!-- 5. Language Bar (Phase 5) -->
+        <div id="language-bar-container" class="language-bar-container"></div>
 
-        <!-- 10. Action Buttons -->
+        <!-- 6. Contribution Heatmap (Phase 5) -->
+        <div id="heatmap-container" class="heatmap-container"></div>
+
+        <!-- 7. Top 2 Repos (Phase 5) -->
+        <div id="top-repos-container" class="top-repos-container"></div>
+
+        <!-- 8. Badges: small pills (max 4) -->
+        <div id="badges-container" class="badges-container"></div>
+
+        <!-- 9. One-line verdict in quotes -->
+        <div id="verdict-card" class="vibe-card verdict-card">
+          <p id="verdict-text" class="verdict-text"></p>
+        </div>
+
+        <!-- 10. Buttons -->
         <div class="action-buttons">
           <button id="try-another-btn" class="btn btn-secondary" type="button">
             try another
