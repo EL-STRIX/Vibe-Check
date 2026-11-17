@@ -591,6 +591,12 @@ export function animateCards() {
   const cards = container.querySelectorAll('.vibe-card');
   cards.forEach((card, index) => {
     card.classList.remove('card-animate');
+    if (card.id === 'profile-card') {
+      card.style.opacity = '1';
+      card.style.visibility = 'visible';
+      card.style.transform = 'none';
+      return;
+    }
     if (prefersReducedMotion) {
       card.style.opacity = '1';
       card.style.transform = 'none';

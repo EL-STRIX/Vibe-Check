@@ -206,29 +206,35 @@ body::before {
   box-shadow: 0 0 25px rgba(56, 189, 248, 0.25), var(--card-shadow);
 }
 
-.result-container.rarity-epic .vibe-card:first-child {
+.result-container.rarity-epic .vibe-card:first-child,
+.result-container.rarity-epic #profile-card {
   border-color: rgba(167, 139, 250, 0.7);
   box-shadow: 0 0 32px rgba(167, 139, 250, 0.35), var(--card-shadow);
-  animation: epicPulse 3s ease-in-out infinite alternate;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
-.result-container.rarity-legendary .vibe-card:first-child {
+.result-container.rarity-legendary .vibe-card:first-child,
+.result-container.rarity-legendary #profile-card {
   border-color: #F59E0B;
   box-shadow: 0 0 40px rgba(245, 158, 11, 0.5), var(--card-shadow);
-  animation: legendaryGlow 2s ease-in-out infinite alternate;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 @keyframes epicPulse {
-  0% { box-shadow: 0 0 25px rgba(167, 139, 250, 0.25); }
-  100% { box-shadow: 0 0 38px rgba(244, 114, 182, 0.45); }
+  0% { opacity: 1; box-shadow: 0 0 25px rgba(167, 139, 250, 0.25); }
+  100% { opacity: 1; box-shadow: 0 0 38px rgba(244, 114, 182, 0.45); }
 }
 
 @keyframes legendaryGlow {
   0% {
+    opacity: 1;
     box-shadow: 0 0 30px rgba(245, 158, 11, 0.4);
     border-color: #F59E0B;
   }
   100% {
+    opacity: 1;
     box-shadow: 0 0 50px rgba(251, 191, 36, 0.7);
     border-color: #FBBF24;
   }
@@ -272,13 +278,15 @@ body::before {
 
 /* Staggered Card Animation (Under 0.8s) */
 .card-animate {
-  opacity: 0;
-  transform: translateY(16px);
-  animation: cardSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: cardSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes cardSlideUp {
-  to {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
     opacity: 1;
     transform: translateY(0);
   }
@@ -555,10 +563,12 @@ body::before {
 }
 
 /* 1. Profile Card */
-.profile-card {
-  display: flex;
+#profile-card.profile-card {
+  display: flex !important;
   align-items: center;
   gap: 18px;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 .profile-avatar-box {
