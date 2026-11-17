@@ -3,6 +3,14 @@
 // --- REACTION LINES POOLS (At least 6 per title and per score label) ---
 
 const TITLE_LINES = {
+  'Mystery Person': [
+    'no public repos. mysterious. we respect it.',
+    'working in the shadows, absolute stealth mode.',
+    'zero public repos? top secret government contractor vibes.',
+    'keeping your code classified like area 51 files.',
+    'all aura, zero public commits. enigmatic developer.',
+    'undercover agent operating without a paper trail.'
+  ],
   'Commit Goblin': [
     'bro is locked in. your commit graph is greener than my future.',
     'no cap, you commit like it\'s a personality.',
@@ -196,7 +204,7 @@ export function getScoreLabel(score) {
   return 'needs a glow-up';
 }
 
-// --- 3. DEV TITLE ---
+// --- 3. DEV TITLE (First matching rule, top to bottom) ---
 export function getDevTitle(data) {
   const stats = data.stats || {};
   const profile = data.profile || {};
@@ -209,6 +217,11 @@ export function getDevTitle(data) {
   const prsMerged = stats.prsMerged || 0;
   const publicRepos = profile.publicRepos || 0;
   const distinctLanguages = languages.length;
+
+  // Edge case: No public repos -> Mystery Person
+  if (publicRepos === 0) {
+    return 'Mystery Person';
+  }
 
   // Ghost Contributor: fewer than 10 commits and fewer than 3 repos
   if (commits < 10 && publicRepos < 3) {
@@ -236,7 +249,7 @@ export function getDevTitle(data) {
   }
 
   // Night Owl Coder: more than 50% of commits between 10pm and 4am (hours 22, 23, 0, 1, 2, 3)
-  if (commitHours.length >= 3) {
+  if (commitHours && commitHours.length >= 3) {
     const nightCommits = commitHours.filter(h => h >= 22 || h <= 3).length;
     if (nightCommits / commitHours.length > 0.5) {
       return 'Night Owl Coder';
@@ -272,8 +285,8 @@ export function getBadges(data) {
 
   const matchedBadges = [];
 
-  // Night Owl / Early Bird
-  if (commitHours.length >= 3) {
+  // Night Owl / Early Bird (requires commit hours)
+  if (commitHours && commitHours.length >= 3) {
     const nightCommits = commitHours.filter(h => h >= 22 || h <= 3).length;
     const earlyCommits = commitHours.filter(h => h >= 5 && h <= 9).length;
 
@@ -289,17 +302,17 @@ export function getBadges(data) {
     matchedBadges.push('Streak King/Queen');
   }
 
-  // Open Source Hero
+  // Open Source Hero: 15+ merged PRs
   if (prsMerged >= 15) {
     matchedBadges.push('Open Source Hero');
   }
 
-  // Language Hopper
+  // Language Hopper: 4+ languages
   if (distinctLanguages >= 4) {
     matchedBadges.push('Language Hopper');
   }
 
-  // Star Magnet
+  // Star Magnet: 100+ stars
   if (stars >= 100) {
     matchedBadges.push('Star Magnet');
   }
@@ -325,7 +338,10 @@ export function generateReaction(devTitle, score, label) {
   const titlePool = TITLE_LINES[devTitle] || TITLE_LINES['Quiet Builder'];
   const scorePool = SCORE_LINES[label] || SCORE_LINES['mid but loading'];
 
-  const line1 = getRandomItem(titlePool);
+  let line1 = getRandomItem(titlePool);
+  if (devTitle === 'Mystery Person') {
+    line1 = 'no public repos. mysterious. we respect it.';
+  }
   const line2 = getRandomItem(scorePool);
 
   const lines = [line1, line2];

@@ -1,4 +1,4 @@
-// app.js - Main Application Logic & Visual Extras
+// app.js - Main Application Logic, Visual Extras & Edge Cases
 import { analyzeProfile } from './reactions.js';
 
 // Loading screen lines that rotate every 1.5 seconds
@@ -10,6 +10,7 @@ const LOADING_LINES = [
 ];
 
 let loadingInterval = null;
+let lastAttemptedUser = '';
 const THEME_STORAGE_KEY = 'vibe-check-theme';
 
 // Standard GitHub language colors
@@ -87,6 +88,24 @@ export function showScreen(screenName) {
   }
 }
 
+// Clean and normalize username input (removes @, accepts URLs)
+export function cleanInputUsername(raw) {
+  if (!raw || typeof raw !== 'string') return '';
+  let cleaned = raw.trim();
+
+  // If pasted profile link (e.g., https://github.com/octocat or github.com/octocat/)
+  if (cleaned.includes('github.com') || cleaned.includes('/')) {
+    cleaned = cleaned.split('?')[0].split('#')[0];
+    cleaned = cleaned.replace(/\/+$/, '');
+    const parts = cleaned.split('/');
+    cleaned = parts[parts.length - 1];
+  }
+
+  // Remove leading @
+  cleaned = cleaned.replace(/^@+/, '').trim();
+  return cleaned;
+}
+
 // Shake animation helper for input errors
 export function triggerInputShake(customPlaceholder) {
   const usernameInput = getEl('username-input');
@@ -99,6 +118,25 @@ export function triggerInputShake(customPlaceholder) {
     usernameInput.placeholder = customPlaceholder;
   }
   usernameInput.focus();
+}
+
+// Error Banner handling with Retry button
+export function showError(message, showRetry = false) {
+  const banner = getEl('error-banner');
+  const msgEl = getEl('error-message');
+  const retryBtn = getEl('retry-btn');
+
+  if (!banner || !msgEl) return;
+  msgEl.textContent = message;
+  if (retryBtn) {
+    retryBtn.hidden = !showRetry;
+  }
+  banner.hidden = false;
+}
+
+export function hideError() {
+  const banner = getEl('error-banner');
+  if (banner) banner.hidden = true;
 }
 
 // Abbreviate numbers (1.2k, 3.4M) so cards never break
@@ -129,7 +167,6 @@ export function animateCountUp(element, target, duration = 600, isFormatted = fa
   function update(now) {
     const elapsed = now - startTime;
     const progress = Math.min(1, elapsed / duration);
-    // Smooth ease-out quad
     const ease = 1 - (1 - progress) * (1 - progress);
     const current = Math.round(targetNum * ease);
     element.textContent = isFormatted ? formatNumber(current) : current;
@@ -144,6 +181,7 @@ export function animateCountUp(element, target, duration = 600, isFormatted = fa
 
 // Loading Animation
 export function startLoading() {
+  hideError();
   showScreen('loading');
   const loadingLineEl = getEl('loading-line');
   let lineIndex = 0;
@@ -214,7 +252,7 @@ export function renderLanguageBar(languages) {
   legendEl.innerHTML = '';
 
   if (!languages || languages.length === 0) {
-    legendEl.innerHTML = '<span class="legend-item" style="color:var(--muted-text);">no public languages found</span>';
+    legendEl.innerHTML = '<span class="legend-item" style="color:var(--muted-text);">no public code languages detected</span>';
     return;
   }
 
@@ -253,7 +291,6 @@ export function renderHeatmap(calendar) {
     return;
   }
 
-  // Build grid of weeks and days
   const weeks = [];
   let currentWeek = [];
 
@@ -354,7 +391,7 @@ export function animateCards() {
 export function renderBasicResult(data) {
   const { profile, stats } = data;
 
-  // 1. Profile Card
+  // 1. Profile Card (handles missing bio or name)
   const avatarEl = getEl('profile-avatar');
   const nameEl = getEl('profile-name');
   const handleEl = getEl('profile-handle');
@@ -372,6 +409,7 @@ export function renderBasicResult(data) {
   if (nameEl) nameEl.textContent = profile.name || profile.login;
   if (handleEl) handleEl.textContent = `@${profile.login}`;
 
+  // Missing bio: hide the bio line completely
   if (bioEl) {
     if (profile.bio && profile.bio.trim()) {
       bioEl.textContent = profile.bio.trim();
@@ -398,7 +436,7 @@ export function renderBasicResult(data) {
   if (streakEl) animateCountUp(streakEl, stats.longestStreak || 0, 600, true);
 }
 
-// Render Full Result (Visual Extras)
+// Render Full Result
 export function renderFullResult(data) {
   // 1. Render Basic Profile & Animated Stats
   renderBasicResult(data);
@@ -471,11 +509,21 @@ export function renderFullResult(data) {
   return analysis;
 }
 
-// Fetch vibe data from serverless API
+// Fetch vibe data from serverless API (with full Edge Cases support)
 export async function handleCheckVibe(rawInput) {
-  const username = rawInput ? rawInput.trim() : '';
+  const username = cleanInputUsername(rawInput);
+  lastAttemptedUser = username;
+
+  // Edge case: Empty input
   if (!username) {
     triggerInputShake('type something bestie');
+    return;
+  }
+
+  // Edge case: No internet
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    showError("you're offline. touch grass, then come back", true);
+    triggerInputShake("you're offline. touch grass, then come back");
     return;
   }
 
@@ -486,27 +534,37 @@ export async function handleCheckVibe(rawInput) {
     const data = await res.json();
     stopLoading();
 
+    // Edge case: API returned error
     if (!res.ok || data.error) {
       showScreen('landing');
       if (data.error === 'not_found') {
+        // Username not found
         triggerInputShake("this id doesn't exist. did you make it up? 💀 try again");
-      } else if (data.error === 'rate_limited') {
+        showError("this id doesn't exist. did you make it up? 💀 try again", false);
+      } else if (data.error === 'rate_limited' || data.error === 'server_error') {
+        // Rate limit or server error: show message with retry button
         triggerInputShake("github is tired rn, try again in a minute");
+        showError("github is tired rn, try again in a minute", true);
       } else {
         triggerInputShake("github is tired rn, try again in a minute");
+        showError("github is tired rn, try again in a minute", true);
       }
       return;
     }
 
+    hideError();
     renderFullResult(data);
     showScreen('result');
   } catch (err) {
     stopLoading();
     showScreen('landing');
+
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       triggerInputShake("you're offline. touch grass, then come back");
+      showError("you're offline. touch grass, then come back", true);
     } else {
       triggerInputShake("github is tired rn, try again in a minute");
+      showError("github is tired rn, try again in a minute", true);
     }
   }
 }
@@ -517,6 +575,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const vibeForm = getEl('vibe-form');
   const usernameInput = getEl('username-input');
   const tryAnotherBtn = getEl('try-another-btn');
+  const retryBtn = getEl('retry-btn');
 
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', toggleTheme);
@@ -526,21 +585,26 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     vibeForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const value = usernameInput?.value?.trim();
-      if (!value) {
-        triggerInputShake('type something bestie');
-        return;
-      }
       handleCheckVibe(value);
     });
   }
 
   if (tryAnotherBtn) {
     tryAnotherBtn.addEventListener('click', () => {
+      hideError();
       showScreen('landing');
       if (usernameInput) {
         usernameInput.value = '';
         usernameInput.placeholder = 'github username or profile url';
         usernameInput.focus();
+      }
+    });
+  }
+
+  if (retryBtn) {
+    retryBtn.addEventListener('click', () => {
+      if (lastAttemptedUser) {
+        handleCheckVibe(lastAttemptedUser);
       }
     });
   }
