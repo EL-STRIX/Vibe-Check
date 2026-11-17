@@ -234,15 +234,8 @@ export function updateSecretsUI() {
   const count = list.length;
   const text = `secrets found: ${count}/${TOTAL_SECRETS}`;
 
-  const landingBadge = getEl('landing-secrets-badge');
-  const landingText = getEl('landing-secrets-text');
   const resultText = getEl('secrets-progress-text');
-
-  if (landingText) landingText.textContent = text;
   if (resultText) resultText.textContent = text;
-  if (landingBadge) {
-    landingBadge.hidden = (count === 0);
-  }
 }
 
 // --- 4. NAVIGATION & SCREENS ---
