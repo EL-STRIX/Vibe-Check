@@ -160,14 +160,131 @@
           <p id="verdict-text" class="verdict-text"></p>
         </div>
 
-        <!-- 10. Buttons -->
+        <!-- 10. Buttons: try another, share, compare -->
         <div class="action-buttons">
+          <div class="action-buttons-row">
+            <button id="share-btn" class="btn btn-gradient" type="button">
+              share vibe 📸
+            </button>
+            <button id="compare-btn" class="btn btn-secondary" type="button">
+              compare ⚔️
+            </button>
+          </div>
           <button id="try-another-btn" class="btn btn-secondary" type="button">
             try another
           </button>
         </div>
       </div>
     </section>
+
+    <!-- Screen 4: Compare Mode (Phase 7) -->
+    <section id="screen-compare" class="screen screen-compare" hidden>
+      <div class="compare-content">
+        <h2 class="landing-title gradient-text">vibe battle</h2>
+        <p class="landing-subtitle">two devs enter. one vibe wins.</p>
+
+        <form id="compare-form" class="compare-form" autocomplete="off" novalidate>
+          <div class="compare-inputs-grid">
+            <input
+              type="text"
+              id="compare-user1"
+              class="vibe-input"
+              placeholder="first github id"
+              spellcheck="false"
+              autocorrect="off"
+              autocapitalize="none"
+              required
+            />
+            <span class="compare-vs gradient-text">VS</span>
+            <input
+              type="text"
+              id="compare-user2"
+              class="vibe-input"
+              placeholder="second github id"
+              spellcheck="false"
+              autocorrect="off"
+              autocapitalize="none"
+              required
+            />
+          </div>
+          <button type="submit" id="battle-btn" class="btn btn-gradient">
+            battle vibes ⚔️
+          </button>
+        </form>
+
+        <!-- Compare Error / Notification Banner -->
+        <div id="compare-error-banner" class="error-banner vibe-card" hidden>
+          <p id="compare-error-message" class="error-message"></p>
+        </div>
+
+        <!-- Compare Result View -->
+        <div id="compare-result" class="compare-result" hidden>
+          <div id="compare-winner-card" class="vibe-card compare-winner-card">
+            <span class="winner-crown">👑</span>
+            <h3 id="compare-winner-title" class="compare-winner-title gradient-text"></h3>
+            <p id="compare-winner-line" class="compare-winner-line"></p>
+          </div>
+
+          <div class="compare-cards-grid">
+            <div id="compare-card-1" class="vibe-card compare-user-card"></div>
+            <div id="compare-card-2" class="vibe-card compare-user-card"></div>
+          </div>
+        </div>
+
+        <button id="compare-back-btn" class="btn btn-secondary compare-back-btn" type="button">
+          ← back to vibe check
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Hidden Offscreen Container for 1080x1350 Share Card Image Generation -->
+  <div id="share-card-canvas" class="share-card-canvas">
+    <div class="share-card-content">
+      <div class="share-card-header">
+        <span class="share-card-badge">github vibe check</span>
+      </div>
+      <div class="share-card-profile">
+        <div id="share-avatar-box" class="share-avatar-box">
+          <img id="share-avatar-img" class="share-avatar-img" src="" alt="avatar" />
+          <div id="share-avatar-fallback" class="share-avatar-fallback"></div>
+        </div>
+        <div class="share-profile-text">
+          <h2 id="share-name" class="share-name"></h2>
+          <span id="share-handle" class="share-handle"></span>
+        </div>
+      </div>
+      <div class="share-card-title-box">
+        <h1 id="share-title" class="share-title gradient-text"></h1>
+      </div>
+      <div class="share-score-box">
+        <span class="share-score-label" id="share-score-label"></span>
+        <div class="share-score-pill">
+          <span id="share-score-number" class="share-score-number"></span>
+          <span class="share-score-max">/100</span>
+        </div>
+      </div>
+      <div class="share-stats-row">
+        <div class="share-stat-item">
+          <span id="share-stat-stars" class="share-stat-val"></span>
+          <span class="share-stat-lbl">stars</span>
+        </div>
+        <div class="share-stat-item">
+          <span id="share-stat-commits" class="share-stat-val"></span>
+          <span class="share-stat-lbl">commits</span>
+        </div>
+        <div class="share-stat-item">
+          <span id="share-stat-streak" class="share-stat-val"></span>
+          <span class="share-stat-lbl">streak</span>
+        </div>
+      </div>
+      <div class="share-verdict-box">
+        <p id="share-verdict" class="share-verdict"></p>
+      </div>
+      <div class="share-card-footer">
+        <span>check yours at github-vibe-check ✨</span>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>

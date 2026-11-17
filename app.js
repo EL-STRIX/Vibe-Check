@@ -1,4 +1,4 @@
-// app.js - Main Application Logic, Visual Extras & Edge Cases
+// app.js - Main Application Logic, Visual Extras, Edge Cases & Fun Extras (Share + Compare)
 import { analyzeProfile } from './reactions.js';
 
 // Loading screen lines that rotate every 1.5 seconds
@@ -11,6 +11,8 @@ const LOADING_LINES = [
 
 let loadingInterval = null;
 let lastAttemptedUser = '';
+let currentVibeData = null;
+let currentAnalysis = null;
 const THEME_STORAGE_KEY = 'vibe-check-theme';
 
 // Standard GitHub language colors
@@ -79,10 +81,13 @@ export function showScreen(screenName) {
   const screenLanding = getEl('screen-landing');
   const screenLoading = getEl('screen-loading');
   const screenResult = getEl('screen-result');
+  const screenCompare = getEl('screen-compare');
 
   if (screenLanding) screenLanding.hidden = (screenName !== 'landing');
   if (screenLoading) screenLoading.hidden = (screenName !== 'loading');
   if (screenResult) screenResult.hidden = (screenName !== 'result');
+  if (screenCompare) screenCompare.hidden = (screenName !== 'compare');
+
   if (typeof window !== 'undefined') {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -391,7 +396,7 @@ export function animateCards() {
 export function renderBasicResult(data) {
   const { profile, stats } = data;
 
-  // 1. Profile Card (handles missing bio or name)
+  // 1. Profile Card
   const avatarEl = getEl('profile-avatar');
   const nameEl = getEl('profile-name');
   const handleEl = getEl('profile-handle');
@@ -409,7 +414,6 @@ export function renderBasicResult(data) {
   if (nameEl) nameEl.textContent = profile.name || profile.login;
   if (handleEl) handleEl.textContent = `@${profile.login}`;
 
-  // Missing bio: hide the bio line completely
   if (bioEl) {
     if (profile.bio && profile.bio.trim()) {
       bioEl.textContent = profile.bio.trim();
@@ -438,11 +442,12 @@ export function renderBasicResult(data) {
 
 // Render Full Result
 export function renderFullResult(data) {
-  // 1. Render Basic Profile & Animated Stats
+  currentVibeData = data;
   renderBasicResult(data);
 
   // Run Reaction Engine
   const analysis = analyzeProfile(data);
+  currentAnalysis = analysis;
 
   // 2. Dev Title & Score Ring
   const scoreLabelEl = getEl('score-label');
@@ -509,18 +514,16 @@ export function renderFullResult(data) {
   return analysis;
 }
 
-// Fetch vibe data from serverless API (with full Edge Cases support)
+// Fetch vibe data from serverless API
 export async function handleCheckVibe(rawInput) {
   const username = cleanInputUsername(rawInput);
   lastAttemptedUser = username;
 
-  // Edge case: Empty input
   if (!username) {
     triggerInputShake('type something bestie');
     return;
   }
 
-  // Edge case: No internet
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     showError("you're offline. touch grass, then come back", true);
     triggerInputShake("you're offline. touch grass, then come back");
@@ -534,17 +537,11 @@ export async function handleCheckVibe(rawInput) {
     const data = await res.json();
     stopLoading();
 
-    // Edge case: API returned error
     if (!res.ok || data.error) {
       showScreen('landing');
       if (data.error === 'not_found') {
-        // Username not found
         triggerInputShake("this id doesn't exist. did you make it up? 💀 try again");
         showError("this id doesn't exist. did you make it up? 💀 try again", false);
-      } else if (data.error === 'rate_limited' || data.error === 'server_error') {
-        // Rate limit or server error: show message with retry button
-        triggerInputShake("github is tired rn, try again in a minute");
-        showError("github is tired rn, try again in a minute", true);
       } else {
         triggerInputShake("github is tired rn, try again in a minute");
         showError("github is tired rn, try again in a minute", true);
@@ -569,6 +566,219 @@ export async function handleCheckVibe(rawInput) {
   }
 }
 
+// --- FUN EXTRA 1: SHARE CARD DOWNLOAD (1080 x 1350 PNG) ---
+export async function downloadShareCard() {
+  if (!currentVibeData || !currentAnalysis) return;
+  const shareBtn = getEl('share-btn');
+  const canvasNode = getEl('share-card-canvas');
+  if (!canvasNode) return;
+
+  const originalBtnText = shareBtn ? shareBtn.textContent : '';
+  if (shareBtn) shareBtn.textContent = 'generating image... ⏳';
+
+  const { profile, stats } = currentVibeData;
+  const analysis = currentAnalysis;
+
+  // Populate canvas fields
+  const shareName = getEl('share-name');
+  const shareHandle = getEl('share-handle');
+  const shareTitle = getEl('share-title');
+  const shareScoreLabel = getEl('share-score-label');
+  const shareScoreNumber = getEl('share-score-number');
+  const shareStatStars = getEl('share-stat-stars');
+  const shareStatCommits = getEl('share-stat-commits');
+  const shareStatStreak = getEl('share-stat-streak');
+  const shareVerdict = getEl('share-verdict');
+  const shareAvatarImg = getEl('share-avatar-img');
+  const shareAvatarFallback = getEl('share-avatar-fallback');
+
+  if (shareName) shareName.textContent = profile.name || profile.login;
+  if (shareHandle) shareHandle.textContent = `@${profile.login}`;
+  if (shareTitle) shareTitle.textContent = analysis.title;
+  if (shareScoreLabel) shareScoreLabel.textContent = analysis.label;
+  if (shareScoreNumber) shareScoreNumber.textContent = analysis.score;
+  if (shareStatStars) shareStatStars.textContent = formatNumber(stats.stars || 0);
+  if (shareStatCommits) shareStatCommits.textContent = formatNumber(stats.commits || 0);
+  if (shareStatStreak) shareStatStreak.textContent = `${stats.longestStreak || 0}d`;
+  if (shareVerdict) shareVerdict.textContent = `"${analysis.verdict}"`;
+
+  // Avatar handling (use image if loadable, or draw initial circle fallback per Tech Stack Sec 10)
+  let avatarLoaded = false;
+  if (profile.avatar && shareAvatarImg) {
+    try {
+      // Create off-screen image test
+      await new Promise((resolve, reject) => {
+        const testImg = new Image();
+        testImg.crossOrigin = 'anonymous';
+        testImg.onload = () => {
+          shareAvatarImg.src = testImg.src;
+          shareAvatarImg.style.display = 'block';
+          if (shareAvatarFallback) shareAvatarFallback.style.display = 'none';
+          avatarLoaded = true;
+          resolve(true);
+        };
+        testImg.onerror = () => {
+          reject(false);
+        };
+        testImg.src = profile.avatar;
+      });
+    } catch (_) {
+      avatarLoaded = false;
+    }
+  }
+
+  if (!avatarLoaded) {
+    if (shareAvatarImg) shareAvatarImg.style.display = 'none';
+    if (shareAvatarFallback) {
+      shareAvatarFallback.style.display = 'flex';
+      shareAvatarFallback.textContent = (profile.login || 'V')[0].toUpperCase();
+    }
+  }
+
+  try {
+    if (typeof window !== 'undefined' && window.htmlToImage) {
+      const dataUrl = await window.htmlToImage.toPng(canvasNode, {
+        width: 1080,
+        height: 1350,
+        pixelRatio: 1
+      });
+
+      const link = document.createElement('a');
+      link.download = `github-vibe-${profile.login}.png`;
+      link.href = dataUrl;
+      link.click();
+    }
+  } catch (err) {
+    console.error('Failed to generate share image:', err);
+  } finally {
+    if (shareBtn) shareBtn.textContent = originalBtnText;
+  }
+}
+
+// --- FUN EXTRA 2: COMPARE MODE ---
+export async function handleCompareSubmit(user1Raw, user2Raw) {
+  const user1 = cleanInputUsername(user1Raw);
+  const user2 = cleanInputUsername(user2Raw);
+
+  const errorBanner = getEl('compare-error-banner');
+  const errorMsg = getEl('compare-error-message');
+  const battleBtn = getEl('battle-btn');
+  const resultContainer = getEl('compare-result');
+
+  const showCompareError = (msg) => {
+    if (errorBanner && errorMsg) {
+      errorMsg.textContent = msg;
+      errorBanner.hidden = false;
+    }
+    if (resultContainer) resultContainer.hidden = true;
+  };
+
+  const hideCompareError = () => {
+    if (errorBanner) errorBanner.hidden = true;
+  };
+
+  if (!user1 || !user2) {
+    showCompareError('enter two usernames to battle bestie');
+    return;
+  }
+
+  // Edge Case: Compare with same ID twice
+  if (user1.toLowerCase() === user2.toLowerCase()) {
+    showCompareError("you vs you? that's just self-love");
+    return;
+  }
+
+  hideCompareError();
+  const originalBattleText = battleBtn ? battleBtn.textContent : '';
+  if (battleBtn) battleBtn.textContent = 'battling... ⚔️';
+
+  try {
+    const [res1, res2] = await Promise.all([
+      fetch(`/api/vibe?user=${encodeURIComponent(user1)}`),
+      fetch(`/api/vibe?user=${encodeURIComponent(user2)}`)
+    ]);
+
+    const [data1, data2] = await Promise.all([res1.json(), res2.json()]);
+
+    if (!res1.ok || data1.error) {
+      showCompareError(`@${user1} doesn't exist. did you make it up? 💀`);
+      return;
+    }
+    if (!res2.ok || data2.error) {
+      showCompareError(`@${user2} doesn't exist. did you make it up? 💀`);
+      return;
+    }
+
+    const a1 = analyzeProfile(data1);
+    const a2 = analyzeProfile(data2);
+
+    renderCompareResults(data1, a1, data2, a2);
+  } catch (err) {
+    showCompareError('github is tired rn, try again in a minute');
+  } finally {
+    if (battleBtn) battleBtn.textContent = originalBattleText;
+  }
+}
+
+function renderCompareResults(data1, a1, data2, a2) {
+  const resultContainer = getEl('compare-result');
+  const winnerTitle = getEl('compare-winner-title');
+  const winnerLine = getEl('compare-winner-line');
+  const card1 = getEl('compare-card-1');
+  const card2 = getEl('compare-card-2');
+
+  if (!resultContainer || !card1 || !card2) return;
+
+  const score1 = a1.score;
+  const score2 = a2.score;
+  const name1 = data1.profile.login;
+  const name2 = data2.profile.login;
+
+  let winnerName = '';
+  let line = '';
+
+  if (score1 > score2) {
+    winnerName = `@${name1} wins!`;
+    line = `@${name1} cleared with pure main character energy. @${name2} take notes bestie.`;
+  } else if (score2 > score1) {
+    winnerName = `@${name2} wins!`;
+    line = `@${name2} cleared with pure main character energy. @${name1} take notes bestie.`;
+  } else {
+    winnerName = "it's a dead tie! 🤝";
+    line = 'identical vibe frequencies. you two should start a startup immediately.';
+  }
+
+  if (winnerTitle) winnerTitle.textContent = winnerName;
+  if (winnerLine) winnerLine.textContent = line;
+
+  const buildUserCard = (data, a, isWinner) => `
+    <div class="compare-user-card-inner ${isWinner ? 'is-winner' : ''}">
+      <img class="compare-user-avatar" src="${data.profile.avatar || ''}" alt="${data.profile.login}" onerror="this.style.display='none'" />
+      <h4 class="compare-user-name">${data.profile.name || data.profile.login}</h4>
+      <span class="compare-user-handle">@${data.profile.login}</span>
+      <div class="compare-user-score gradient-text">${a.score}</div>
+      <div class="score-label" style="font-size:0.9rem;">${a.label}</div>
+      <div class="compare-user-title gradient-text">${a.title}</div>
+      <div style="font-size:0.8rem; color:var(--muted-text); margin-top:4px;">
+        ⭐ ${formatNumber(data.stats.stars)} &bull; ${formatNumber(data.stats.commits)} commits &bull; ${data.stats.longestStreak}d streak
+      </div>
+    </div>
+  `;
+
+  card1.innerHTML = buildUserCard(data1, a1, score1 >= score2 && score1 !== score2);
+  card2.innerHTML = buildUserCard(data2, a2, score2 >= score1 && score1 !== score2);
+
+  card1.classList.toggle('is-winner', score1 > score2);
+  card2.classList.toggle('is-winner', score2 > score1);
+
+  resultContainer.hidden = false;
+
+  // Trigger confetti for high score winner
+  if (Math.max(score1, score2) >= 70) {
+    triggerConfetti();
+  }
+}
+
 // Browser Initialization
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const themeToggleBtn = getEl('theme-toggle');
@@ -576,6 +786,12 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const usernameInput = getEl('username-input');
   const tryAnotherBtn = getEl('try-another-btn');
   const retryBtn = getEl('retry-btn');
+  const shareBtn = getEl('share-btn');
+  const compareBtn = getEl('compare-btn');
+  const compareForm = getEl('compare-form');
+  const compareBackBtn = getEl('compare-back-btn');
+  const compareUser1 = getEl('compare-user1');
+  const compareUser2 = getEl('compare-user2');
 
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', toggleTheme);
@@ -605,6 +821,43 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     retryBtn.addEventListener('click', () => {
       if (lastAttemptedUser) {
         handleCheckVibe(lastAttemptedUser);
+      }
+    });
+  }
+
+  if (shareBtn) {
+    shareBtn.addEventListener('click', downloadShareCard);
+  }
+
+  if (compareBtn) {
+    compareBtn.addEventListener('click', () => {
+      hideError();
+      showScreen('compare');
+      if (currentVibeData && compareUser1) {
+        compareUser1.value = currentVibeData.profile.login;
+      }
+      if (compareUser2) {
+        compareUser2.value = '';
+        compareUser2.focus();
+      }
+    });
+  }
+
+  if (compareForm) {
+    compareForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const u1 = compareUser1?.value;
+      const u2 = compareUser2?.value;
+      handleCompareSubmit(u1, u2);
+    });
+  }
+
+  if (compareBackBtn) {
+    compareBackBtn.addEventListener('click', () => {
+      if (currentVibeData) {
+        showScreen('result');
+      } else {
+        showScreen('landing');
       }
     });
   }
