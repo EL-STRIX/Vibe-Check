@@ -1,6 +1,6 @@
 // api/vibe.js - GitHub Vibe Check Serverless Function
 // Fetches raw GitHub data for a user using REST & GraphQL APIs.
-// No scoring, titles, or reactions are computed here.
+// Computes data fields per Game Features and Logic spec (Section 2).
 
 // Load environment variables if running in local Node environment without Vercel CLI
 if (!process.env.GITHUB_TOKEN) {
@@ -37,7 +37,7 @@ function cleanUsername(raw) {
   if (!raw || typeof raw !== 'string') return null;
   let cleaned = raw.trim();
 
-  // Handle pasted profile URLs (e.g., https://github.com/octocat or github.com/octocat/foo)
+  // Handle pasted profile URLs (e.g., https://github.com/octocat or github.com/octocat/)
   if (cleaned.includes('github.com') || cleaned.includes('/')) {
     cleaned = cleaned.split('?')[0].split('#')[0];
     cleaned = cleaned.replace(/\/+$/, '');
@@ -141,18 +141,32 @@ export default async function handler(req, res) {
       return sendJson(res, 429, { error: 'rate_limited' });
     }
 
-    // Calculate stars, languages, and topRepos
-    let totalStars = 0;
+    // Section 2: ownRepos, forkedRepos, stars (own non-fork only), topRepoStarShare
+    let ownRepos = 0;
+    let forkedRepos = 0;
+    let stars = 0;
+    let topOwnRepoStars = 0;
     const langCounts = {};
     let totalLangRepos = 0;
 
     for (const repo of reposData) {
-      totalStars += (repo.stargazers_count || 0);
+      if (repo.fork) {
+        forkedRepos++;
+      } else {
+        ownRepos++;
+        const s = repo.stargazers_count || 0;
+        stars += s;
+        if (s > topOwnRepoStars) {
+          topOwnRepoStars = s;
+        }
+      }
       if (repo.language) {
         langCounts[repo.language] = (langCounts[repo.language] || 0) + 1;
         totalLangRepos++;
       }
     }
+
+    const topRepoStarShare = stars > 0 ? (topOwnRepoStars / stars) : 0;
 
     // Top 4 languages with percentages
     const languages = Object.entries(langCounts)
@@ -163,7 +177,7 @@ export default async function handler(req, res) {
         percent: totalLangRepos > 0 ? Math.round((count / totalLangRepos) * 100) : 0
       }));
 
-    // Top 2 repos by stars (prefer non-forks, fallback to forks if needed)
+    // Top 2 repos by stars (prefer own non-forks, fallback to forks if needed)
     const sortedRepos = [...reposData].sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0));
     const nonForks = sortedRepos.filter(r => !r.fork);
     const candidateRepos = nonForks.length >= 2 ? nonForks : sortedRepos;
@@ -173,13 +187,15 @@ export default async function handler(req, res) {
       language: r.language || 'Plain Text'
     }));
 
-    // Commit hours from recent commits of the latest pushed public repos
+    // Commit timestamps: timedCommits, nightShare, lateNightShare
+    // Use author's local time (offset inside timestamp).
+    // If fewer than 20 timed commits found, set all three to null per Section 2.
     let commitHours = [];
-    const recentRepos = reposData.filter(r => !r.fork).slice(0, 2);
-    for (const repo of recentRepos) {
+    const reposToCheck = reposData.filter(r => !r.fork).slice(0, 5);
+    for (const repo of reposToCheck) {
       try {
         const commitsRes = await fetch(
-          `https://api.github.com/repos/${encodeURIComponent(repo.owner?.login || username)}/${encodeURIComponent(repo.name)}/commits?author=${encodeURIComponent(username)}&per_page=30`,
+          `https://api.github.com/repos/${encodeURIComponent(repo.owner?.login || username)}/${encodeURIComponent(repo.name)}/commits?author=${encodeURIComponent(username)}&per_page=50`,
           { headers }
         );
         if (commitsRes.ok) {
@@ -188,20 +204,32 @@ export default async function handler(req, res) {
             for (const c of commits) {
               const dateStr = c.commit?.author?.date || c.commit?.committer?.date;
               if (dateStr) {
-                // Git commit timestamp format: YYYY-MM-DDTHH:MM:SS+00:00
-                // Use author's local wall-clock hour if available in ISO string, else Date hour
+                // Match author's local wall-clock hour inside timestamp: YYYY-MM-DDTHH:MM:SS
                 const match = dateStr.match(/T(\d{2}):/);
                 if (match) {
                   commitHours.push(parseInt(match[1], 10));
-                } else {
-                  commitHours.push(new Date(dateStr).getHours());
                 }
               }
             }
           }
         }
       } catch (_) {}
-      if (commitHours.length >= 20) break;
+      if (commitHours.length >= 50) break;
+    }
+
+    let timedCommits = null;
+    let nightShare = null;
+    let lateNightShare = null;
+
+    if (commitHours.length >= 20) {
+      timedCommits = commitHours.length;
+      // nightShare: between 10pm (22) and 4am (hours 22, 23, 0, 1, 2, 3)
+      const nightCount = commitHours.filter(h => h >= 22 || h <= 3).length;
+      nightShare = nightCount / timedCommits;
+
+      // lateNightShare: between 2am and 5am (hours 2, 3, 4)
+      const lateNightCount = commitHours.filter(h => h >= 2 && h <= 4).length;
+      lateNightShare = lateNightCount / timedCommits;
     }
 
     // 3. REST GET /search/issues?q=author:{username}+type:pr+is:merged
@@ -287,8 +315,42 @@ export default async function handler(req, res) {
       } catch (_) {}
     }
 
-    // Assemble profile data
+    // Calculate Section 2 calendar metrics: activeDays, weekendShare, last30, prev90
+    let activeDays = 0;
+    let weekendContributions = 0;
+    let totalContributions = 0;
+
+    for (const day of calendar) {
+      const cnt = day.count || 0;
+      if (cnt > 0) activeDays++;
+      totalContributions += cnt;
+
+      // Check day of week (0 is Sunday, 6 is Saturday)
+      if (day.date) {
+        const d = new Date(day.date + 'T00:00:00Z').getUTCDay();
+        if (d === 0 || d === 6) {
+          weekendContributions += cnt;
+        }
+      }
+    }
+
+    const weekendShare = totalContributions > 0 ? (weekendContributions / totalContributions) : 0;
+    const last30Slice = calendar.slice(-30);
+    const last30 = last30Slice.reduce((sum, d) => sum + (d.count || 0), 0);
+    const prev90Slice = calendar.slice(-120, -30);
+    const prev90 = prev90Slice.reduce((sum, d) => sum + (d.count || 0), 0);
+
+    // monthsActive: months since account created, capped at 12
     const createdAtDate = userData.created_at ? userData.created_at.split('T')[0] : '';
+    let monthsActive = 12;
+    if (userData.created_at) {
+      const createdTime = new Date(userData.created_at).getTime();
+      const nowTime = Date.now();
+      const diffMonths = (nowTime - createdTime) / (1000 * 60 * 60 * 24 * 30.4375);
+      monthsActive = Math.min(12, Math.max(0.1, diffMonths));
+    }
+
+    // Assemble response payload matching Section 2 specification
     const responsePayload = {
       profile: {
         login: userData.login,
@@ -298,20 +360,32 @@ export default async function handler(req, res) {
         followers: userData.followers || 0,
         following: userData.following || 0,
         createdAt: createdAtDate,
-        publicRepos: userData.public_repos || 0
+        publicRepos: userData.public_repos || 0,
+        monthsActive
       },
       stats: {
-        stars: totalStars,
+        stars,
         commits,
         prsOpened,
         prsMerged,
         issues,
         longestStreak,
-        currentStreak
+        currentStreak,
+        ownRepos,
+        forkedRepos,
+        topRepoStarShare,
+        activeDays,
+        weekendShare,
+        last30,
+        prev90,
+        timedCommits,
+        nightShare,
+        lateNightShare
       },
       languages,
       topRepos,
       calendar,
+      calendarTotal: totalContributions,
       commitHours
     };
 

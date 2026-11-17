@@ -10,10 +10,15 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Theme Toggle (top right corner) -->
-  <button id="theme-toggle" class="theme-toggle" aria-label="Toggle dark/light theme" type="button">
-    <span id="theme-icon" class="theme-icon">🌙</span>
-  </button>
+  <!-- Top Navigation Controls: Theme Toggle & Sound Toggle -->
+  <div class="top-controls">
+    <button id="sound-toggle" class="control-btn sound-toggle" aria-label="Toggle audio effects" type="button">
+      <span id="sound-icon">🔊</span>
+    </button>
+    <button id="theme-toggle" class="control-btn theme-toggle" aria-label="Toggle dark/light theme" type="button">
+      <span id="theme-icon">🌙</span>
+    </button>
+  </div>
 
   <div class="app-wrapper">
     <!-- Screen 1: Landing -->
@@ -47,31 +52,71 @@
             retry 🔄
           </button>
         </div>
+
+        <!-- Secrets Discovered Pill (Section 6) -->
+        <div id="landing-secrets-badge" class="landing-secrets-badge" hidden>
+          <span class="lock-icon">🏆</span>
+          <span id="landing-secrets-text">secrets found: 0/5</span>
+        </div>
       </div>
     </section>
 
-    <!-- Screen 2: Loading -->
+    <!-- Screen 2: Loading & Guess the Score Mini-Game (Section 6) -->
     <section id="screen-loading" class="screen screen-loading" hidden>
       <div class="loading-content">
         <div class="loading-blob"></div>
         <p id="loading-line" class="loading-text">stalking your commits...</p>
+
+        <!-- Guess the Score Mini-Game -->
+        <div id="guess-container" class="guess-container vibe-card">
+          <div class="guess-header">
+            <span class="guess-badge">quick minigame 🎯</span>
+            <span class="guess-tag">optional</span>
+          </div>
+          <p class="guess-prompt">guess your vibe score before the reveal:</p>
+          <div class="guess-slider-box">
+            <span id="guess-val-display" class="guess-val-display gradient-text">50</span>
+            <input type="range" id="guess-slider" class="guess-slider" min="0" max="100" value="50" />
+            <div class="guess-slider-labels">
+              <span>0</span>
+              <span>50</span>
+              <span>100</span>
+            </div>
+          </div>
+          <div class="guess-actions">
+            <button id="guess-lock-btn" class="btn btn-sm btn-gradient" type="button">lock it in</button>
+            <button id="guess-skip-btn" class="btn btn-sm btn-secondary" type="button">skip</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- Screen 3: Result (Top to bottom per Spec Section 2) -->
+    <!-- Screen 3: Result (Top to bottom per Spec) -->
     <section id="screen-result" class="screen screen-result" hidden>
       <div id="result-container" class="result-container">
         <!-- 1. Profile Card -->
         <div id="profile-card" class="vibe-card profile-card">
           <img id="profile-avatar" class="profile-avatar" src="" alt="Avatar" />
           <div class="profile-info">
-            <h2 id="profile-name" class="profile-name"></h2>
+            <div class="profile-top-line">
+              <h2 id="profile-name" class="profile-name"></h2>
+              <span id="rarity-badge" class="rarity-badge">Common</span>
+            </div>
             <span id="profile-handle" class="profile-handle"></span>
             <p id="profile-bio" class="profile-bio"></p>
           </div>
         </div>
 
-        <!-- 2. Dev Title & Vibe Score Ring Card -->
+        <!-- Secret Title Unlocked Banner (Section 6) -->
+        <div id="secret-title-banner" class="secret-title-banner vibe-card" hidden>
+          <span class="secret-sparkle">✨</span>
+          <div class="secret-banner-text">
+            <strong>secret title unlocked!</strong>
+            <span id="secrets-progress-text">secrets found: 1/5</span>
+          </div>
+        </div>
+
+        <!-- 2. Dev Title & Vibe Score Ring Card with Aura & Archetype (Sections 4 & 6) -->
         <div id="title-score-card" class="vibe-card title-score-card">
           <div class="score-header">
             <div class="score-ring-container">
@@ -91,16 +136,46 @@
               </div>
             </div>
             <div class="score-meta">
-              <span class="vibe-tag">vibe score</span>
+              <div class="score-meta-top">
+                <span class="vibe-tag">vibe score</span>
+                <span id="aura-points-badge" class="aura-points-badge">+0 aura</span>
+              </div>
               <span id="score-label" class="score-label">mid but loading</span>
+              <p id="archetype-mix-line" class="archetype-mix-line">100% Mystery</p>
             </div>
           </div>
           <h2 id="dev-title" class="dev-title gradient-text">Quiet Builder</h2>
         </div>
 
-        <!-- 3. Reaction Text (2 to 3 short lines) -->
+        <!-- Guess Comparison Result (Section 6) -->
+        <div id="guess-result-card" class="vibe-card guess-result-card" hidden>
+          <div class="guess-result-header">
+            <span class="guess-result-icon">🎯</span>
+            <span id="guess-result-title" class="guess-result-title">locked in</span>
+          </div>
+          <p id="guess-result-comment" class="guess-result-comment"></p>
+        </div>
+
+        <!-- 3. Reaction Text with Typing Effect & Roast Level Chips (Sections 5 & 6) -->
         <div id="reaction-card" class="vibe-card reaction-card">
+          <div class="reaction-card-header">
+            <span class="reaction-tag">developer readout 💬</span>
+            <span class="skip-tap-hint">tap to skip</span>
+          </div>
+          <div id="typing-bubble" class="typing-bubble" hidden>
+            <span></span><span></span><span></span>
+          </div>
           <div id="reaction-lines" class="reaction-lines"></div>
+
+          <!-- Roast Level Chips (Section 6) -->
+          <div class="roast-chips-wrapper">
+            <span class="roast-lbl">roast level:</span>
+            <div class="roast-chips">
+              <button class="roast-chip" data-level="Soft" type="button">Soft ☁️</button>
+              <button class="roast-chip active" data-level="Medium" type="button">Medium 🔥</button>
+              <button class="roast-chip" data-level="Savage" type="button">Savage 💀</button>
+            </div>
+          </div>
         </div>
 
         <!-- 4. Stats Row -->
@@ -160,6 +235,15 @@
           <p id="verdict-text" class="verdict-text"></p>
         </div>
 
+        <!-- Daily Vibe Prediction (Section 6) -->
+        <div id="daily-vibe-card" class="vibe-card daily-vibe-card">
+          <div class="daily-vibe-header">
+            <span class="daily-vibe-icon">🔮</span>
+            <span class="daily-vibe-title">today's vibe prediction</span>
+          </div>
+          <p id="daily-vibe-text" class="daily-vibe-text"></p>
+        </div>
+
         <!-- 10. Buttons: try another, share, compare -->
         <div class="action-buttons">
           <div class="action-buttons-row">
@@ -177,7 +261,7 @@
       </div>
     </section>
 
-    <!-- Screen 4: Compare Mode (Phase 7) -->
+    <!-- Screen 4: Upgraded Vibe Battle (Sections 6 & 7) -->
     <section id="screen-compare" class="screen screen-compare" hidden>
       <div class="compare-content">
         <h2 class="landing-title gradient-text">vibe battle</h2>
@@ -217,12 +301,18 @@
           <p id="compare-error-message" class="error-message"></p>
         </div>
 
+        <!-- 1.2s "FIGHT" Intro Banner (Section 6) -->
+        <div id="battle-intro-overlay" class="battle-intro-overlay" hidden>
+          <div class="battle-fight-banner gradient-text">FIGHT ⚔️</div>
+        </div>
+
         <!-- Compare Result View -->
         <div id="compare-result" class="compare-result" hidden>
           <div id="compare-winner-card" class="vibe-card compare-winner-card">
             <span class="winner-crown">👑</span>
             <h3 id="compare-winner-title" class="compare-winner-title gradient-text"></h3>
             <p id="compare-winner-line" class="compare-winner-line"></p>
+            <span id="compare-margin-line" class="compare-margin-line"></span>
           </div>
 
           <div class="compare-cards-grid">

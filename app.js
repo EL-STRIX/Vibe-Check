@@ -1,5 +1,5 @@
-// app.js - Main Application Logic, Visual Extras, Edge Cases & Fun Extras (Share + Compare)
-import { analyzeProfile } from './reactions.js';
+// app.js - Main Application Logic, Visual Extras, Edge Cases & Game Features
+import { analyzeProfile, evaluateGuess, evaluateBattle } from './reactions.js';
 
 // Loading screen lines that rotate every 1.5 seconds
 const LOADING_LINES = [
@@ -14,6 +14,17 @@ let lastAttemptedUser = '';
 let currentVibeData = null;
 let currentAnalysis = null;
 const THEME_STORAGE_KEY = 'vibe-check-theme';
+const ROAST_STORAGE_KEY = 'vibe-roast-level';
+const SECRETS_STORAGE_KEY = 'vibe-secrets-found';
+const SOUND_STORAGE_KEY = 'vibe-sound-muted';
+const TOTAL_SECRETS = 5;
+
+let audioCtx = null;
+let soundMuted = false;
+let currentRoastLevel = 'Medium';
+let userLockedGuess = null;
+let typingTimeoutId = null;
+let currentTypingState = { isTyping: false, fullText: [] };
 
 // Standard GitHub language colors
 const LANGUAGE_COLORS = {
@@ -50,7 +61,130 @@ function getEl(id) {
   return typeof document !== 'undefined' ? document.getElementById(id) : null;
 }
 
-// Theme Management
+// --- 1. AUDIO & HAPTICS (Section 6) ---
+export function initAudio() {
+  if (typeof localStorage === 'undefined') return;
+  soundMuted = localStorage.getItem(SOUND_STORAGE_KEY) === 'true';
+  updateSoundIcon();
+}
+
+export function updateSoundIcon() {
+  const icon = getEl('sound-icon');
+  if (icon) {
+    icon.textContent = soundMuted ? '🔇' : '🔊';
+  }
+}
+
+export function toggleSound() {
+  soundMuted = !soundMuted;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(SOUND_STORAGE_KEY, soundMuted ? 'true' : 'false');
+  }
+  updateSoundIcon();
+  if (!soundMuted) {
+    playPop();
+  }
+}
+
+function getAudioContext() {
+  if (typeof window === 'undefined') return null;
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return null;
+  if (!audioCtx) {
+    audioCtx = new AudioContextClass();
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  return audioCtx;
+}
+
+export function triggerHaptic(duration = 30) {
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    try {
+      navigator.vibrate(duration);
+    } catch (_) {}
+  }
+}
+
+export function playPop() {
+  if (soundMuted) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const now = ctx.currentTime;
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(840, now + 0.05);
+    gain.gain.setValueAtTime(0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.06);
+  } catch (_) {}
+}
+
+export function playChime() {
+  if (soundMuted) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    // Note 1 (C5 - 523Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'triangle';
+    osc1.frequency.setValueAtTime(523.25, now);
+    gain1.gain.setValueAtTime(0.15, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.2);
+
+    // Note 2 (E5 - 659Hz)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(659.25, now + 0.09);
+    gain2.gain.setValueAtTime(0.16, now + 0.09);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.32);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.09);
+    osc2.stop(now + 0.33);
+  } catch (_) {}
+}
+
+export function playFanfare() {
+  if (soundMuted) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const start = now + idx * 0.08;
+      const dur = idx === notes.length - 1 ? 0.36 : 0.12;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, start);
+      gain.gain.setValueAtTime(0.15, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(start);
+      osc.stop(start + dur + 0.02);
+    });
+  } catch (_) {}
+}
+
+// --- 2. THEME MANAGEMENT ---
 export function initTheme() {
   if (typeof localStorage === 'undefined' || typeof document === 'undefined') return;
   const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'dark';
@@ -74,9 +208,47 @@ export function toggleTheme() {
   const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
   const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
   applyTheme(newTheme);
+  playPop();
 }
 
-// Screen Navigation
+// --- 3. SECRETS TRACKER (Section 6) ---
+export function getDiscoveredSecrets() {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(SECRETS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+export function recordSecretFound(title) {
+  if (typeof localStorage === 'undefined' || !title) return;
+  const list = getDiscoveredSecrets();
+  if (!list.includes(title)) {
+    list.push(title);
+    localStorage.setItem(SECRETS_STORAGE_KEY, JSON.stringify(list));
+  }
+  updateSecretsUI();
+}
+
+export function updateSecretsUI() {
+  const list = getDiscoveredSecrets();
+  const count = list.length;
+  const text = `secrets found: ${count}/${TOTAL_SECRETS}`;
+
+  const landingBadge = getEl('landing-secrets-badge');
+  const landingText = getEl('landing-secrets-text');
+  const resultText = getEl('secrets-progress-text');
+
+  if (landingText) landingText.textContent = text;
+  if (resultText) resultText.textContent = text;
+  if (landingBadge) {
+    landingBadge.hidden = (count === 0);
+  }
+}
+
+// --- 4. NAVIGATION & SCREENS ---
 export function showScreen(screenName) {
   const screenLanding = getEl('screen-landing');
   const screenLoading = getEl('screen-loading');
@@ -184,9 +356,29 @@ export function animateCountUp(element, target, duration = 600, isFormatted = fa
   requestAnimationFrame(update);
 }
 
+// --- 5. GUESS THE SCORE MINIGAME (Section 6) ---
+export function resetGuessMinigame() {
+  userLockedGuess = null;
+  const slider = getEl('guess-slider');
+  const valDisplay = getEl('guess-val-display');
+  const lockBtn = getEl('guess-lock-btn');
+  const skipBtn = getEl('guess-skip-btn');
+  if (slider) slider.value = 50;
+  if (valDisplay) valDisplay.textContent = '50';
+  if (lockBtn) {
+    lockBtn.textContent = 'lock it in';
+    lockBtn.disabled = false;
+  }
+  if (skipBtn) {
+    skipBtn.textContent = 'skip';
+    skipBtn.disabled = false;
+  }
+}
+
 // Loading Animation
 export function startLoading() {
   hideError();
+  resetGuessMinigame();
   showScreen('loading');
   const loadingLineEl = getEl('loading-line');
   let lineIndex = 0;
@@ -223,6 +415,20 @@ export function triggerConfetti() {
       origin: { y: 0.6 },
       colors: ['#A78BFA', '#F472B6', '#FB923C', '#E9D5FF', '#FDF2F8'],
       ticks: 200,
+      disableForReducedMotion: true
+    });
+  }
+}
+
+// Gold confetti for Legendary Cards (Section 6)
+export function triggerGoldConfetti() {
+  if (typeof window !== 'undefined' && typeof window.confetti === 'function') {
+    window.confetti({
+      particleCount: 120,
+      spread: 85,
+      origin: { y: 0.6 },
+      colors: ['#F59E0B', '#FBBF24', '#FCD34D', '#FDE68A', '#FFFBEB'],
+      ticks: 250,
       disableForReducedMotion: true
     });
   }
@@ -387,9 +593,134 @@ export function animateCards() {
   cards.forEach((card, index) => {
     card.classList.remove('card-animate');
     void card.offsetWidth; // Reflow
-    card.style.animationDelay = `${index * 0.07}s`;
+    card.style.animationDelay = `${index * 0.06}s`;
     card.classList.add('card-animate');
   });
+}
+
+// --- 6. TYPING EFFECT WITH SKIP (Section 6) ---
+export function stopTypingEffect() {
+  if (typingTimeoutId) {
+    clearTimeout(typingTimeoutId);
+    typingTimeoutId = null;
+  }
+  currentTypingState.isTyping = false;
+}
+
+export function skipTypingInstantly() {
+  if (!currentTypingState.isTyping) return;
+  stopTypingEffect();
+  const typingBubble = getEl('typing-bubble');
+  const reactionLinesEl = getEl('reaction-lines');
+  if (typingBubble) typingBubble.hidden = true;
+  if (reactionLinesEl) {
+    reactionLinesEl.innerHTML = '';
+    currentTypingState.fullText.forEach(line => {
+      const p = document.createElement('p');
+      p.className = 'reaction-line';
+      p.textContent = line;
+      reactionLinesEl.appendChild(p);
+    });
+  }
+}
+
+export function renderTypingReaction(lines) {
+  stopTypingEffect();
+  currentTypingState = { isTyping: true, fullText: lines };
+
+  const typingBubble = getEl('typing-bubble');
+  const reactionLinesEl = getEl('reaction-lines');
+  if (!reactionLinesEl) return;
+
+  reactionLinesEl.innerHTML = '';
+
+  const prefersReducedMotion = typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (prefersReducedMotion) {
+    if (typingBubble) typingBubble.hidden = true;
+    currentTypingState.isTyping = false;
+    lines.forEach(line => {
+      const p = document.createElement('p');
+      p.className = 'reaction-line';
+      p.textContent = line;
+      reactionLinesEl.appendChild(p);
+    });
+    return;
+  }
+
+  // Show typing bubble for 700ms first
+  if (typingBubble) typingBubble.hidden = false;
+
+  typingTimeoutId = setTimeout(() => {
+    if (typingBubble) typingBubble.hidden = true;
+
+    let lineIndex = 0;
+    let charIndex = 0;
+    let currentParagraph = null;
+
+    function typeChar() {
+      if (!currentTypingState.isTyping) return;
+
+      if (lineIndex >= lines.length) {
+        currentTypingState.isTyping = false;
+        return;
+      }
+
+      if (charIndex === 0) {
+        currentParagraph = document.createElement('p');
+        currentParagraph.className = 'reaction-line';
+        reactionLinesEl.appendChild(currentParagraph);
+      }
+
+      const currentLineText = lines[lineIndex];
+      if (charIndex < currentLineText.length) {
+        currentParagraph.textContent += currentLineText[charIndex];
+        charIndex++;
+        typingTimeoutId = setTimeout(typeChar, 25);
+      } else {
+        lineIndex++;
+        charIndex = 0;
+        typingTimeoutId = setTimeout(typeChar, 180);
+      }
+    }
+
+    typeChar();
+  }, 700);
+}
+
+// --- 7. ROAST LEVEL SWITCHER (Section 6) ---
+export function initRoastLevel() {
+  if (typeof localStorage !== 'undefined') {
+    currentRoastLevel = localStorage.getItem(ROAST_STORAGE_KEY) || 'Medium';
+  }
+  updateRoastChipsUI();
+}
+
+export function updateRoastChipsUI() {
+  const chips = document.querySelectorAll('.roast-chip');
+  chips.forEach(chip => {
+    const level = chip.getAttribute('data-level');
+    chip.classList.toggle('active', level === currentRoastLevel);
+  });
+}
+
+export function setRoastLevel(level) {
+  if (currentRoastLevel === level && currentAnalysis) return;
+  currentRoastLevel = level;
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem(ROAST_STORAGE_KEY, level);
+  }
+  updateRoastChipsUI();
+  playPop();
+
+  if (currentVibeData) {
+    const updated = analyzeProfile(currentVibeData, currentRoastLevel);
+    currentAnalysis = updated;
+    const verdictEl = getEl('verdict-text');
+    if (verdictEl) verdictEl.textContent = `"${updated.verdict}"`;
+    renderTypingReaction(updated.reactionLines);
+  }
 }
 
 // Render Profile and Basic Stats with count-up numbers
@@ -445,55 +776,81 @@ export function renderFullResult(data) {
   currentVibeData = data;
   renderBasicResult(data);
 
-  // Run Reaction Engine
-  const analysis = analyzeProfile(data);
+  // Run Reaction Engine with active roast level
+  const analysis = analyzeProfile(data, currentRoastLevel);
   currentAnalysis = analysis;
 
-  // 2. Dev Title & Score Ring
+  // 1. Rarity Badges & Card Glow (Section 6)
+  const resultContainer = getEl('result-container');
+  const rarityBadge = getEl('rarity-badge');
+  const rarityClasses = ['rarity-common', 'rarity-rare', 'rarity-epic', 'rarity-legendary'];
+
+  if (resultContainer) {
+    resultContainer.classList.remove(...rarityClasses);
+    resultContainer.classList.add(`rarity-${analysis.rarity.toLowerCase()}`);
+  }
+  if (rarityBadge) {
+    rarityBadge.classList.remove(...rarityClasses);
+    rarityBadge.classList.add(`rarity-${analysis.rarity.toLowerCase()}`);
+    rarityBadge.textContent = analysis.rarity;
+  }
+
+  // 2. Secret Title Banner & Unlock (Section 6)
+  const secretBanner = getEl('secret-title-banner');
+  if (analysis.isSecret) {
+    if (secretBanner) secretBanner.hidden = false;
+    recordSecretFound(analysis.title);
+  } else {
+    if (secretBanner) secretBanner.hidden = true;
+  }
+  updateSecretsUI();
+
+  // 3. Dev Title, Score Ring, Aura & Archetype (Sections 4 & 6)
   const scoreLabelEl = getEl('score-label');
   const devTitleEl = getEl('dev-title');
+  const auraBadge = getEl('aura-points-badge');
+  const archetypeLine = getEl('archetype-mix-line');
 
   if (scoreLabelEl) scoreLabelEl.textContent = analysis.label;
   if (devTitleEl) devTitleEl.textContent = analysis.title;
+  if (auraBadge) {
+    auraBadge.textContent = analysis.formattedAura;
+    auraBadge.classList.toggle('aura-negative', analysis.aura < 0);
+  }
+  if (archetypeLine) {
+    archetypeLine.textContent = analysis.archetypes.summaryLine;
+  }
   renderScoreRing(analysis.score);
 
-  // 3. Reaction Lines
-  const reactionLinesEl = getEl('reaction-lines');
-  if (reactionLinesEl) {
-    reactionLinesEl.innerHTML = '';
-    analysis.reactionLines.forEach(line => {
-      const p = document.createElement('p');
-      p.className = 'reaction-line';
-      p.textContent = line;
-      reactionLinesEl.appendChild(p);
-    });
+  // 4. Guess Minigame Result Card (Section 6)
+  const guessResultCard = getEl('guess-result-card');
+  const guessResultTitle = getEl('guess-result-title');
+  const guessResultComment = getEl('guess-result-comment');
+
+  if (userLockedGuess !== null) {
+    const guessEval = evaluateGuess(userLockedGuess, analysis.score);
+    if (guessResultTitle) {
+      guessResultTitle.textContent = `${guessEval.title.toUpperCase()} (guessed ${userLockedGuess}, actual ${analysis.score})`;
+    }
+    if (guessResultComment) {
+      guessResultComment.textContent = guessEval.comment;
+    }
+    if (guessResultCard) guessResultCard.hidden = false;
+  } else {
+    if (guessResultCard) guessResultCard.hidden = true;
   }
 
-  // 5. Language Bar
+  // 5. Typing Effect Reactions (Section 6)
+  renderTypingReaction(analysis.reactionLines);
+
+  // 6. Language Bar
   renderLanguageBar(data.languages);
 
-  // 6. Contribution Heatmap
+  // 7. Contribution Heatmap
   renderHeatmap(data.calendar);
 
-  // 7. Top 2 Repos
+  // 8. Top 2 Repos
   renderTopRepos(data.topRepos);
-
-  // 8. Badges (small pills, max 4)
-  const badgesContainerEl = getEl('badges-container');
-  if (badgesContainerEl) {
-    badgesContainerEl.innerHTML = '';
-    if (analysis.badges && analysis.badges.length > 0) {
-      analysis.badges.forEach(badge => {
-        const pill = document.createElement('span');
-        pill.className = 'badge-pill';
-        pill.textContent = badge;
-        badgesContainerEl.appendChild(pill);
-      });
-      badgesContainerEl.style.display = 'flex';
-    } else {
-      badgesContainerEl.style.display = 'none';
-    }
-  }
 
   // 9. Verdict
   const verdictTextEl = getEl('verdict-text');
@@ -501,14 +858,33 @@ export function renderFullResult(data) {
     verdictTextEl.textContent = `"${analysis.verdict}"`;
   }
 
+  // 10. Daily Vibe (Section 6)
+  const dailyVibeText = getEl('daily-vibe-text');
+  if (dailyVibeText) {
+    dailyVibeText.textContent = analysis.dailyVibe;
+  }
+
   // Staggered card animation
   animateCards();
 
-  // 10. Confetti if score >= 80
-  if (analysis.score >= 80) {
-    setTimeout(() => {
-      triggerConfetti();
-    }, 450);
+  // 11. Audio & Confetti by Tier / Secret (Section 6)
+  triggerHaptic(40);
+
+  if (analysis.isSecret) {
+    playFanfare();
+    triggerGoldConfetti();
+  } else if (analysis.rarity === 'Legendary') {
+    playFanfare();
+    triggerGoldConfetti();
+  } else if (analysis.rarity === 'Epic') {
+    playChime();
+    if (analysis.score >= 80) {
+      setTimeout(() => triggerConfetti(), 450);
+    }
+  } else if (analysis.rarity === 'Rare') {
+    playChime();
+  } else {
+    playPop();
   }
 
   return analysis;
@@ -677,6 +1053,7 @@ export async function downloadShareCard() {
       link.download = `github-vibe-${profile.login}.png`;
       link.href = dataUrl;
       link.click();
+      playPop();
     }
   } catch (err) {
     console.error('Failed to generate share image:', err);
@@ -686,7 +1063,7 @@ export async function downloadShareCard() {
   }
 }
 
-// --- FUN EXTRA 2: COMPARE MODE ---
+// --- FUN EXTRA 2: UPGRADED VIBE BATTLE (Sections 6 & 7) ---
 export async function handleCompareSubmit(user1Raw, user2Raw) {
   const user1 = cleanInputUsername(user1Raw);
   const user2 = cleanInputUsername(user2Raw);
@@ -695,6 +1072,7 @@ export async function handleCompareSubmit(user1Raw, user2Raw) {
   const errorMsg = getEl('compare-error-message');
   const battleBtn = getEl('battle-btn');
   const resultContainer = getEl('compare-result');
+  const introOverlay = getEl('battle-intro-overlay');
 
   const showCompareError = (msg) => {
     if (errorBanner && errorMsg) {
@@ -702,6 +1080,7 @@ export async function handleCompareSubmit(user1Raw, user2Raw) {
       errorBanner.hidden = false;
     }
     if (resultContainer) resultContainer.hidden = true;
+    if (introOverlay) introOverlay.hidden = true;
   };
 
   const hideCompareError = () => {
@@ -722,6 +1101,13 @@ export async function handleCompareSubmit(user1Raw, user2Raw) {
   hideCompareError();
   const originalBattleText = battleBtn ? battleBtn.textContent : '';
   if (battleBtn) battleBtn.textContent = 'battling... ⚔️';
+
+  // 1.2s "FIGHT" Intro Banner (Section 6)
+  if (introOverlay) introOverlay.hidden = false;
+  playPop();
+  triggerHaptic(50);
+
+  const startTime = Date.now();
 
   try {
     const [res1, res2] = await Promise.all([
@@ -747,47 +1133,51 @@ export async function handleCompareSubmit(user1Raw, user2Raw) {
       return;
     }
 
-    const a1 = analyzeProfile(data1);
-    const a2 = analyzeProfile(data2);
+    const a1 = analyzeProfile(data1, currentRoastLevel);
+    const a2 = analyzeProfile(data2, currentRoastLevel);
 
+    // Ensure intro overlay stays visible for at least 1200ms
+    const elapsed = Date.now() - startTime;
+    if (elapsed < 1200) {
+      await new Promise(r => setTimeout(r, 1200 - elapsed));
+    }
+
+    if (introOverlay) introOverlay.hidden = true;
     renderCompareResults(data1, a1, data2, a2);
   } catch (err) {
     showCompareError('github is tired rn, try again in a minute');
   } finally {
+    if (introOverlay) introOverlay.hidden = true;
     if (battleBtn) battleBtn.textContent = originalBattleText;
   }
 }
 
-function renderCompareResults(data1, a1, data2, a2) {
+export function renderCompareResults(data1, a1, data2, a2) {
   const resultContainer = getEl('compare-result');
   const winnerTitle = getEl('compare-winner-title');
   const winnerLine = getEl('compare-winner-line');
+  const marginLineEl = getEl('compare-margin-line');
   const card1 = getEl('compare-card-1');
   const card2 = getEl('compare-card-2');
 
   if (!resultContainer || !card1 || !card2) return;
 
-  const score1 = a1.score;
-  const score2 = a2.score;
+  const battle = evaluateBattle(data1, a1, data2, a2);
   const name1 = data1.profile.login;
   const name2 = data2.profile.login;
 
-  let winnerName = '';
-  let line = '';
-
-  if (score1 > score2) {
-    winnerName = `@${name1} wins!`;
-    line = `@${name1} cleared with pure main character energy. @${name2} take notes bestie.`;
-  } else if (score2 > score1) {
-    winnerName = `@${name2} wins!`;
-    line = `@${name2} cleared with pure main character energy. @${name1} take notes bestie.`;
+  let headerTitle = '';
+  if (battle.winner === 1) {
+    headerTitle = `@${name1} wins! 👑`;
+  } else if (battle.winner === 2) {
+    headerTitle = `@${name2} wins! 👑`;
   } else {
-    winnerName = "it's a dead tie! 🤝";
-    line = 'identical vibe frequencies. you two should start a startup immediately.';
+    headerTitle = "it's a dead tie! 🤝";
   }
 
-  if (winnerTitle) winnerTitle.textContent = winnerName;
-  if (winnerLine) winnerLine.textContent = line;
+  if (winnerTitle) winnerTitle.textContent = headerTitle;
+  if (winnerLine) winnerLine.textContent = battle.reason;
+  if (marginLineEl) marginLineEl.textContent = battle.marginLine;
 
   const buildUserCard = (data, a, isWinner) => `
     <div class="compare-user-card-inner ${isWinner ? 'is-winner' : ''}">
@@ -795,7 +1185,7 @@ function renderCompareResults(data1, a1, data2, a2) {
       <h4 class="compare-user-name">${data.profile.name || data.profile.login}</h4>
       <span class="compare-user-handle">@${data.profile.login}</span>
       <div class="compare-user-score gradient-text">${a.score}</div>
-      <div class="score-label" style="font-size:0.9rem;">${a.label}</div>
+      <div class="score-label" style="font-size:0.9rem;">${a.label} &bull; ${a.formattedAura}</div>
       <div class="compare-user-title gradient-text">${a.title}</div>
       <div style="font-size:0.8rem; color:var(--muted-text); margin-top:4px;">
         ⭐ ${formatNumber(data.stats.stars)} &bull; ${formatNumber(data.stats.commits)} commits &bull; ${data.stats.longestStreak}d streak
@@ -803,23 +1193,30 @@ function renderCompareResults(data1, a1, data2, a2) {
     </div>
   `;
 
-  card1.innerHTML = buildUserCard(data1, a1, score1 >= score2 && score1 !== score2);
-  card2.innerHTML = buildUserCard(data2, a2, score2 >= score1 && score1 !== score2);
+  card1.innerHTML = buildUserCard(data1, a1, battle.winner === 1);
+  card2.innerHTML = buildUserCard(data2, a2, battle.winner === 2);
 
-  card1.classList.toggle('is-winner', score1 > score2);
-  card2.classList.toggle('is-winner', score2 > score1);
+  card1.classList.toggle('is-winner', battle.winner === 1);
+  card2.classList.toggle('is-winner', battle.winner === 2);
 
   resultContainer.hidden = false;
 
-  // Trigger confetti for high score winner
-  if (Math.max(score1, score2) >= 70) {
-    triggerConfetti();
+  // Sound and confetti for winner
+  if (battle.winner !== 0) {
+    playFanfare();
+    triggerHaptic(50);
+    if (Math.max(a1.score, a2.score) >= 70) {
+      triggerConfetti();
+    }
+  } else {
+    playChime();
   }
 }
 
 // Browser Initialization
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const themeToggleBtn = getEl('theme-toggle');
+  const soundToggleBtn = getEl('sound-toggle');
   const vibeForm = getEl('vibe-form');
   const usernameInput = getEl('username-input');
   const tryAnotherBtn = getEl('try-another-btn');
@@ -830,11 +1227,66 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const compareBackBtn = getEl('compare-back-btn');
   const compareUser1 = getEl('compare-user1');
   const compareUser2 = getEl('compare-user2');
+  const reactionCard = getEl('reaction-card');
+  const guessSlider = getEl('guess-slider');
+  const guessValDisplay = getEl('guess-val-display');
+  const guessLockBtn = getEl('guess-lock-btn');
+  const guessSkipBtn = getEl('guess-skip-btn');
 
+  // Top Controls
   if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', toggleTheme);
   }
+  if (soundToggleBtn) {
+    soundToggleBtn.addEventListener('click', toggleSound);
+  }
 
+  // Roast Level Chips
+  const roastChips = document.querySelectorAll('.roast-chip');
+  roastChips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      const level = chip.getAttribute('data-level');
+      if (level) setRoastLevel(level);
+    });
+  });
+
+  // Skip Typing Effect when tapping reaction card
+  if (reactionCard) {
+    reactionCard.addEventListener('click', () => {
+      skipTypingInstantly();
+    });
+  }
+
+  // Guess the Score Slider & Buttons
+  if (guessSlider && guessValDisplay) {
+    guessSlider.addEventListener('input', () => {
+      guessValDisplay.textContent = guessSlider.value;
+      playPop();
+    });
+  }
+
+  if (guessLockBtn) {
+    guessLockBtn.addEventListener('click', () => {
+      if (guessSlider) {
+        userLockedGuess = Number(guessSlider.value);
+        guessLockBtn.textContent = 'locked in! ✓';
+        guessLockBtn.disabled = true;
+        playPop();
+        triggerHaptic(25);
+      }
+    });
+  }
+
+  if (guessSkipBtn) {
+    guessSkipBtn.addEventListener('click', () => {
+      userLockedGuess = null;
+      guessSkipBtn.textContent = 'skipped';
+      guessSkipBtn.disabled = true;
+      playPop();
+    });
+  }
+
+  // Form Submissions
   if (vibeForm) {
     vibeForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -900,6 +1352,10 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     });
   }
 
+  // Initialize Audio, Theme, Secrets UI, and Roast Level
+  initAudio();
   initTheme();
+  initRoastLevel();
+  updateSecretsUI();
   showScreen('landing');
 }
